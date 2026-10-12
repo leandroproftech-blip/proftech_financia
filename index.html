@@ -15,7 +15,7 @@
   <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/app.css?v=8">
+  <link rel="stylesheet" href="css/app.css?v=9">
   <style>
     html, body { margin: 0; }
     html { background: #001F60; }
@@ -138,9 +138,11 @@
       </section>
 
       <div class="painel">
-        <section class="cartao form-cartao" aria-labelledby="titulo-form">
+        <dialog class="modal-lancamento" id="modal-lancamento" aria-labelledby="titulo-form">
+        <section class="cartao form-cartao">
           <div class="cartao-topo">
             <h2 id="titulo-form">Registrar lançamento</h2>
+            <button type="button" class="fechar-modal" id="fechar-lancamento">Fechar</button>
           </div>
           <form class="formulario" id="formulario" novalidate>
             <div class="tipos" role="radiogroup" aria-label="Tipo de lançamento">
@@ -210,8 +212,10 @@
             </div>
           </form>
         </section>
+        </dialog>
 
         <div class="coluna-listas">
+        <button type="button" class="abrir-lancamento" id="abrir-lancamento">Registrar lançamento</button>
         <section class="cartao lista-cartao" id="secao-pendencias" hidden>
           <div class="cartao-topo">
             <h2 id="titulo-pendencias">Ainda pendentes</h2>
@@ -340,6 +344,6 @@
     </div>
   </dialog>
 
-  <script src="js/app.js?v=8"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

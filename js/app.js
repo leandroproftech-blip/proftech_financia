@@ -22,6 +22,7 @@
   const tituloForm = $("#titulo-form");
   const botaoSalvar = $("#salvar");
   const botaoCancelar = $("#cancelar");
+  const modalLancamento = $("#modal-lancamento");
   const lista = $("#lista");
   const vazio = $("#vazio");
   const vazioTexto = $("#vazio-texto");
@@ -290,6 +291,16 @@
     botaoSalvar.textContent = "Registrar";
     botaoCancelar.hidden = true;
     limparErro();
+    if (modalLancamento.open) modalLancamento.close();
+  }
+
+  function telaEstreita() {
+    return window.matchMedia("(max-width: 899px)").matches;
+  }
+
+  function abrirFormulario() {
+    if (!telaEstreita() || modalLancamento.open) return;
+    if (typeof modalLancamento.showModal === "function") modalLancamento.showModal();
   }
 
   function definirMes(novo) {
@@ -603,7 +614,8 @@
     botaoSalvar.textContent = "Salvar";
     botaoCancelar.hidden = false;
     limparErro();
-    formulario.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (telaEstreita()) abrirFormulario();
+    else formulario.scrollIntoView({ behavior: "smooth", block: "center" });
     valorInput.focus();
   }
 
@@ -851,6 +863,22 @@
     salvarFormulario();
   });
   botaoCancelar.addEventListener("click", limparFormulario);
+  $("#abrir-lancamento").addEventListener("click", () => {
+    limparFormulario();
+    abrirFormulario();
+    valorInput.focus();
+  });
+  $("#fechar-lancamento").addEventListener("click", limparFormulario);
+  modalLancamento.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    limparFormulario();
+  });
+  modalLancamento.addEventListener("click", (event) => {
+    if (event.target === modalLancamento) limparFormulario();
+  });
+  window.matchMedia("(max-width: 899px)").addEventListener("change", (event) => {
+    if (!event.matches && modalLancamento.open) modalLancamento.close();
+  });
 
   function aoClicarLista(event) {
     const botao = event.target.closest("button[data-acao]");
