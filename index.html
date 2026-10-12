@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#001F60">
   <meta name="description" content="Controle mensal de entradas, saídas e saldo da profTech.">
   <meta name="robots" content="noindex">
@@ -15,7 +15,7 @@
   <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/app.css?v=9">
+  <link rel="stylesheet" href="css/app.css?v=12">
   <style>
     html, body { margin: 0; }
     html { background: #001F60; }
@@ -215,7 +215,9 @@
         </dialog>
 
         <div class="coluna-listas">
-        <button type="button" class="abrir-lancamento" id="abrir-lancamento">Registrar lançamento</button>
+        <button type="button" class="abrir-lancamento" id="abrir-lancamento" aria-label="Registrar lançamento">
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
         <section class="cartao lista-cartao" id="secao-pendencias" hidden>
           <div class="cartao-topo">
             <h2 id="titulo-pendencias">Ainda pendentes</h2>
@@ -301,17 +303,26 @@
           <ul class="lista" id="rel-pendencias"></ul>
         </section>
 
-        <section class="cartao lista-cartao" aria-labelledby="titulo-relatorio">
+        <section class="cartao lista-cartao lista-entradas" aria-labelledby="titulo-rel-entradas">
           <div class="cartao-topo">
-            <h2 id="titulo-relatorio">Movimentações</h2>
-            <span class="contagem" id="rel-contagem">0 lançamentos</span>
+            <h2 id="titulo-rel-entradas">Entradas</h2>
+            <span class="contagem" id="rel-contagem-entradas">0 entradas</span>
           </div>
-          <div class="vazio" id="rel-vazio">
-            <img src="assets/icons/icon-192.png" alt="">
-            <p id="rel-vazio-texto">Nenhum lançamento neste mês.</p>
-            <p class="vazio-sub">Quando houver registros, eles aparecem aqui.</p>
+          <div class="vazio" id="rel-vazio-entradas">
+            <p id="rel-vazio-entradas-texto">Nenhuma entrada neste mês.</p>
           </div>
-          <ul class="lista" id="rel-lista" hidden></ul>
+          <ul class="lista" id="rel-lista-entradas" hidden></ul>
+        </section>
+
+        <section class="cartao lista-cartao lista-saidas" aria-labelledby="titulo-rel-saidas">
+          <div class="cartao-topo">
+            <h2 id="titulo-rel-saidas">Saídas</h2>
+            <span class="contagem" id="rel-contagem-saidas">0 saídas</span>
+          </div>
+          <div class="vazio" id="rel-vazio-saidas">
+            <p id="rel-vazio-saidas-texto">Nenhuma saída neste mês.</p>
+          </div>
+          <ul class="lista" id="rel-lista-saidas" hidden></ul>
         </section>
       </section>
     </main>
@@ -344,6 +355,6 @@
     </div>
   </dialog>
 
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>

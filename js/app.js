@@ -31,9 +31,8 @@
   const mesRotulo = $("#mes-rotulo");
   const relMesInput = $("#rel-mes");
   const relMesRotulo = $("#rel-mes-rotulo");
-  const relLista = $("#rel-lista");
-  const relVazio = $("#rel-vazio");
-  const relVazioTexto = $("#rel-vazio-texto");
+  const relListaEntradas = $("#rel-lista-entradas");
+  const relListaSaidas = $("#rel-lista-saidas");
   const relCartaoSobrou = $("#rel-cartao-sobrou");
   const marcaSub = $("#marca-sub");
   const toast = $("#toast");
@@ -482,23 +481,30 @@
     relCartaoSobrou.classList.toggle("negativo", sobrou < 0);
     $("#rel-cartao-falta").classList.toggle("tem-atraso", quadro.abertas.some((item) => item.status === "em_atraso"));
 
+    const entradasMes = quadro.doMes.filter((item) => item.tipo === "entrada");
+    const saidasMes = quadro.doMes.filter((item) => item.tipo === "saida");
     const nomeMes = rotuloMes(mes);
     vazioTexto.textContent = `Nenhum lançamento em ${nomeMes}.`;
-    relVazioTexto.textContent = `Nenhum lançamento em ${nomeMes}.`;
+    $("#rel-vazio-entradas-texto").textContent = `Nenhuma entrada em ${nomeMes}.`;
+    $("#rel-vazio-saidas-texto").textContent = `Nenhuma saída em ${nomeMes}.`;
     contagemLista.textContent = textoLancamentos;
-    $("#rel-contagem").textContent = textoLancamentos;
+    $("#rel-contagem-entradas").textContent = contagem(entradasMes.length, "entrada", "entradas");
+    $("#rel-contagem-saidas").textContent = textoSaidas;
     $("#contagem-pendencias").textContent = textoAinda;
     $("#rel-contagem-pendencias").textContent = textoAinda;
     vazio.hidden = quadro.doMes.length > 0;
     lista.hidden = quadro.doMes.length === 0;
-    relVazio.hidden = quadro.doMes.length > 0;
-    relLista.hidden = quadro.doMes.length === 0;
+    $("#rel-vazio-entradas").hidden = entradasMes.length > 0;
+    relListaEntradas.hidden = entradasMes.length === 0;
+    $("#rel-vazio-saidas").hidden = saidasMes.length > 0;
+    relListaSaidas.hidden = saidasMes.length === 0;
     $("#secao-pendencias").hidden = quadro.pendentes.length === 0;
     $("#rel-secao-pendencias").hidden = quadro.pendentes.length === 0;
     desenharLista(quadro.pendentes, $("#pendencias"), false);
     desenharLista(quadro.doMes, lista, false);
     desenharLista(quadro.pendentes, $("#rel-pendencias"), true);
-    desenharLista(quadro.doMes, relLista, true);
+    desenharLista(entradasMes, relListaEntradas, true);
+    desenharLista(saidasMes, relListaSaidas, true);
 
     document.title = `profTech Financeiro · ${nomeMes}`;
     $("#resumo-vivo").textContent = `${nomeMes}: recebeu ${formatarCentavos(recebido)}, falta receber ${formatarCentavos(falta)}, previsão ${formatarCentavos(previsao)}, saídas ${formatarCentavos(gastei)}, sobra em caixa ${formatarCentavos(sobrou)}.`;

@@ -27,7 +27,7 @@
 
 [hidden] { display: none !important; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; touch-action: manipulation; }
 
 html:has(#splash) { overflow: hidden; }
 
@@ -41,7 +41,7 @@ body {
   line-height: 1.45;
 }
 
-button, input { font: inherit; color: inherit; }
+button, input { font: inherit; color: inherit; font-size: 16px; }
 
 button { cursor: pointer; }
 
@@ -891,6 +891,10 @@ body.na-relatorio .topbar .mes-nav { display: none; }
   overflow-wrap: anywhere;
 }
 
+.lista-entradas h2 { color: var(--mint-ink); }
+
+.lista-saidas h2 { color: var(--rose); }
+
 .dialogo-acoes {
   display: flex;
   justify-content: flex-end;
@@ -899,16 +903,20 @@ body.na-relatorio .topbar .mes-nav { display: none; }
 
 @media (max-width: 899px) {
   .abrir-lancamento {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 52px;
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 16px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    z-index: 40;
+    width: 58px;
+    height: 58px;
+    padding: 0;
     border: 0;
-    border-radius: 16px;
+    border-radius: 50%;
     background: var(--mint);
     color: var(--navy);
-    font-weight: 700;
+    box-shadow: 0 12px 28px rgba(0, 31, 96, 0.28);
   }
 
   .fechar-modal {
