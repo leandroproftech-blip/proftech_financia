@@ -15,7 +15,7 @@
   <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/app.css?v=22">
+  <link rel="stylesheet" href="css/app.css?v=24">
   <style>
     html, body { margin: 0; }
     html { background: #001F60; }
@@ -172,6 +172,49 @@
           <strong id="total-sobrou">R$&nbsp;0,00</strong>
           <small id="legenda-sobrou">já recebido menos as saídas</small>
         </article>
+      </section>
+
+      <section class="visao" aria-label="Visão do ano">
+        <section class="cartao">
+          <div class="cartao-topo">
+            <h2 id="titulo-visao">Entradas e saídas</h2>
+            <span class="contagem" id="visao-ano">2026</span>
+          </div>
+          <div class="legenda-grafico" id="legenda-grafico">
+            <span class="ponto">Entradas</span>
+            <span class="ponto saida">Saídas</span>
+          </div>
+          <div class="grafico" id="grafico"></div>
+          <p class="vazio" id="visao-vazia" hidden>Nenhum lançamento neste ano.</p>
+        </section>
+
+        <div class="visao-baixo">
+          <section class="cartao">
+            <div class="cartao-topo">
+              <h2>Meses</h2>
+            </div>
+            <div class="meses-saldo">
+              <div>
+                <h3 class="meses-titulo negativo">No vermelho</h3>
+                <ul class="meses-lista" id="meses-vermelho"></ul>
+                <p class="meses-vazio" id="vazio-vermelho">Nenhum mês no vermelho.</p>
+              </div>
+              <div>
+                <h3 class="meses-titulo positivo">Sobrou</h3>
+                <ul class="meses-lista" id="meses-sobra"></ul>
+                <p class="meses-vazio" id="vazio-sobra">Nenhum mês com sobra.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="cartao">
+            <div class="cartao-topo">
+              <h2>Maiores saídas</h2>
+            </div>
+            <ul class="gastos" id="maiores-saidas"></ul>
+            <p class="vazio" id="vazio-gastos" hidden>Nenhuma saída neste ano.</p>
+          </section>
+        </div>
       </section>
       </section>
 
@@ -468,6 +511,6 @@
   </dialog>
 
   <script src="js/atualizar.js?v=1"></script>
-  <script src="js/app.js?v=20"></script>
+  <script src="js/app.js?v=21"></script>
 </body>
 </html>

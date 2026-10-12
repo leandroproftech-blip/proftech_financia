@@ -525,9 +525,142 @@
     $("#rel-filtro-entrada").textContent = `Entradas · ${entradasMes.length}`;
     $("#rel-filtro-saida").textContent = `Saídas · ${saidasMes.length}`;
     mostrarListaRelatorio(listaRelatorio);
+    renderVisao();
 
     document.title = `profTech Financeiro · ${nomeMes}`;
     $("#resumo-vivo").textContent = `${nomeMes}: recebeu ${formatarCentavos(recebido)}, falta receber ${formatarCentavos(falta)}, previsão ${formatarCentavos(previsao)}, saídas ${formatarCentavos(gastei)}, sobra em caixa ${formatarCentavos(sobrou)}.`;
+  }
+
+  function itensNoMes(competencia) {
+    const itens = [];
+    lancamentos.forEach((item) => {
+      if (item.tipo === "saida") {
+        if (item.data.slice(0, 7) === competencia) itens.push(visaoSaida(item));
+        return;
+      }
+      gerarCobrancas(item, competencia).forEach((cobranca) => {
+        if (cobranca.competencia === competencia) itens.push(cobranca);
+      });
+    });
+    return itens;
+  }
+
+  function saldoMes(competencia) {
+    const itens = itensNoMes(competencia);
+    const entradas = itens
+      .filter((item) => item.tipo === "entrada" && (item.status === "pago" || item.status === "recebido"))
+      .reduce((total, item) => total + item.centavos, 0);
+    const saidas = itens
+      .filter((item) => item.tipo === "saida")
+      .reduce((total, item) => total + item.centavos, 0);
+    return { competencia, entradas, saidas, sobra: entradas - saidas, itens };
+  }
+
+  function nomeMesCurto(competencia) {
+    const [ano, mesNumero] = competencia.split("-").map(Number);
+    const texto = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(new Date(ano, mesNumero - 1, 1));
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
+  function siglaMes(competencia) {
+    const siglas = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    return siglas[Number(competencia.slice(5, 7)) - 1];
+  }
+
+  function renderVisao() {
+    const ano = mes.slice(0, 4);
+    const mesesAno = [];
+    for (let numero = 1; numero <= 12; numero += 1) {
+      mesesAno.push(saldoMes(`${ano}-${String(numero).padStart(2, "0")}`));
+    }
+    const temMovimento = mesesAno.some((item) => item.entradas > 0 || item.saidas > 0);
+    $("#visao-ano").textContent = ano;
+    $("#legenda-grafico").hidden = !temMovimento;
+    $("#grafico").hidden = !temMovimento;
+    $("#visao-vazia").hidden = temMovimento;
+    desenharGrafico(mesesAno);
+    desenharMesesSaldo(mesesAno);
+    desenharMaioresSaidas(mesesAno);
+  }
+
+  function desenharGrafico(mesesAno) {
+    const grafico = $("#grafico");
+    grafico.replaceChildren();
+    const maximo = Math.max(1, ...mesesAno.map((item) => Math.max(item.entradas, item.saidas)));
+    mesesAno.forEach((item) => {
+      const botao = document.createElement("button");
+      botao.type = "button";
+      botao.className = "mes-barra";
+      if (item.competencia === mes) botao.classList.add("atual");
+      if (item.sobra < 0) botao.classList.add("negativo");
+      botao.setAttribute(
+        "aria-label",
+        `${nomeMesCurto(item.competencia)}: entradas ${formatarCentavos(item.entradas)}, saídas ${formatarCentavos(item.saidas)}`
+      );
+      const barras = document.createElement("span");
+      barras.className = "barras";
+      barras.append(barraGrafico(item.entradas, maximo, ""), barraGrafico(item.saidas, maximo, "saida"));
+      const sigla = document.createElement("span");
+      sigla.textContent = siglaMes(item.competencia);
+      botao.append(barras, sigla);
+      botao.addEventListener("click", () => definirMes(item.competencia));
+      grafico.append(botao);
+    });
+  }
+
+  function barraGrafico(valor, maximo, classe) {
+    const barra = document.createElement("span");
+    barra.className = classe ? `barra ${classe}` : "barra";
+    barra.style.height = valor > 0 ? `${Math.max(4, Math.round((valor / maximo) * 148))}px` : "0";
+    return barra;
+  }
+
+  function desenharMesesSaldo(mesesAno) {
+    const vermelho = $("#meses-vermelho");
+    const sobra = $("#meses-sobra");
+    vermelho.replaceChildren();
+    sobra.replaceChildren();
+    const negativos = mesesAno.filter((item) => item.sobra < 0);
+    const positivos = mesesAno.filter((item) => item.sobra > 0);
+    negativos.forEach((item) => vermelho.append(linhaMes(item, "negativo")));
+    positivos.forEach((item) => sobra.append(linhaMes(item, "positivo")));
+    $("#vazio-vermelho").hidden = negativos.length > 0;
+    $("#vazio-sobra").hidden = positivos.length > 0;
+  }
+
+  function linhaMes(item, classe) {
+    const li = document.createElement("li");
+    const nome = document.createElement("span");
+    nome.textContent = nomeMesCurto(item.competencia);
+    const valor = document.createElement("strong");
+    valor.className = classe;
+    valor.textContent = formatarCentavos(item.sobra);
+    li.append(nome, valor);
+    return li;
+  }
+
+  function desenharMaioresSaidas(mesesAno) {
+    const listaGastos = $("#maiores-saidas");
+    const saidas = mesesAno
+      .flatMap((item) => item.itens.filter((lancamento) => lancamento.tipo === "saida"))
+      .sort((a, b) => b.centavos - a.centavos || (a.data < b.data ? 1 : -1))
+      .slice(0, 5);
+    listaGastos.replaceChildren();
+    $("#vazio-gastos").hidden = saidas.length > 0;
+    listaGastos.hidden = saidas.length === 0;
+    saidas.forEach((item) => {
+      const li = document.createElement("li");
+      const corpo = document.createElement("div");
+      const nome = document.createElement("p");
+      nome.textContent = item.descricao;
+      const quando = document.createElement("small");
+      quando.textContent = nomeMesCurto(item.competencia);
+      corpo.append(nome, quando);
+      const valor = document.createElement("strong");
+      valor.textContent = formatarCentavos(item.centavos);
+      li.append(corpo, valor);
+      listaGastos.append(li);
+    });
   }
 
   function mostrarListaRelatorio(tipo) {
