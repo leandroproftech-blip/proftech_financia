@@ -24,10 +24,8 @@
   const botaoCancelar = $("#cancelar");
   const modalLancamento = $("#modal-lancamento");
   const modalCliente = $("#modal-cliente");
-  const lista = $("#lista");
-  const vazio = $("#vazio");
-  const vazioTexto = $("#vazio-texto");
-  const contagemLista = $("#contagem-lista");
+  const listaEntradasMes = $("#lista-entradas-mes");
+  const listaSaidasMes = $("#lista-saidas-mes");
   const mesInput = $("#mes");
   const mesRotulo = $("#mes-rotulo");
   const relMesInput = $("#rel-mes");
@@ -302,9 +300,7 @@
   }
 
   function passaFiltro(item) {
-    const tipo = $("#filtro-tipo").value;
     const situacao = $("#filtro-situacao").value;
-    if (tipo && item.tipo !== tipo) return false;
     if (!situacao) return true;
     if (situacao === "pago") return item.status === "pago" || item.status === "recebido";
     return item.status === situacao;
@@ -482,6 +478,18 @@
     cartaoSobrou.classList.toggle("negativo", sobrou < 0);
     $("#cartao-falta").classList.toggle("tem-atraso", quadro.abertas.some((item) => item.status === "em_atraso"));
 
+    $("#lan-total-recebi").textContent = formatarCentavos(recebido);
+    $("#lan-total-falta").textContent = formatarCentavos(falta);
+    $("#lan-total-previsao").textContent = formatarCentavos(previsao);
+    $("#lan-total-gastei").textContent = formatarCentavos(gastei);
+    $("#lan-total-sobrou").textContent = formatarCentavos(sobrou);
+    $("#lan-qtd-recebi").textContent = textoRecebidas;
+    $("#lan-qtd-falta").textContent = textoPendencia;
+    $("#lan-qtd-saidas").textContent = textoSaidas;
+    $("#lan-legenda-sobrou").textContent = legenda;
+    $("#lan-cartao-sobrou").classList.toggle("negativo", sobrou < 0);
+    $("#lan-cartao-falta").classList.toggle("tem-atraso", quadro.abertas.some((item) => item.status === "em_atraso"));
+
     $("#rel-total-recebi").textContent = formatarCentavos(recebido);
     $("#rel-total-falta").textContent = formatarCentavos(falta);
     $("#rel-total-previsao").textContent = formatarCentavos(previsao);
@@ -496,21 +504,28 @@
 
     const entradasMes = quadro.doMes.filter((item) => item.tipo === "entrada");
     const saidasMes = quadro.doMes.filter((item) => item.tipo === "saida");
+    const entradasVisiveis = entradasMes.filter(passaFiltro);
     const nomeMes = rotuloMes(mes);
-    const doMesFiltrado = quadro.doMes.filter(passaFiltro);
     const pendentesFiltrados = quadro.pendentes.filter(passaFiltro);
-    vazioTexto.textContent = quadro.doMes.length && !doMesFiltrado.length
-      ? `Nenhum lançamento com esse filtro em ${nomeMes}.`
-      : `Nenhum lançamento em ${nomeMes}.`;
+    const soma = (itens) => itens.reduce((total, item) => total + item.centavos, 0);
+    $("#vazio-entradas-mes-texto").textContent = entradasMes.length && !entradasVisiveis.length
+      ? `Nenhuma entrada com esse filtro em ${nomeMes}.`
+      : `Nenhuma entrada em ${nomeMes}.`;
+    $("#vazio-saidas-mes-texto").textContent = `Nenhuma saída em ${nomeMes}.`;
     $("#rel-vazio-entradas-texto").textContent = `Nenhuma entrada em ${nomeMes}.`;
     $("#rel-vazio-saidas-texto").textContent = `Nenhuma saída em ${nomeMes}.`;
-    contagemLista.textContent = contagem(doMesFiltrado.length, "lançamento", "lançamentos");
+    $("#lan-contagem-entradas").textContent = contagem(entradasVisiveis.length, "entrada", "entradas");
+    $("#lan-contagem-saidas").textContent = contagem(saidasMes.length, "saída", "saídas");
+    $("#lan-soma-entradas").textContent = formatarCentavos(soma(entradasVisiveis));
+    $("#lan-soma-saidas").textContent = formatarCentavos(soma(saidasMes));
     $("#rel-contagem-entradas").textContent = contagem(entradasMes.length, "entrada", "entradas");
     $("#rel-contagem-saidas").textContent = textoSaidas;
     $("#contagem-pendencias").textContent = contagem(pendentesFiltrados.length, "pendente", "pendentes");
     $("#rel-contagem-pendencias").textContent = textoAinda;
-    vazio.hidden = doMesFiltrado.length > 0;
-    lista.hidden = doMesFiltrado.length === 0;
+    $("#vazio-entradas-mes").hidden = entradasVisiveis.length > 0;
+    listaEntradasMes.hidden = entradasVisiveis.length === 0;
+    $("#vazio-saidas-mes").hidden = saidasMes.length > 0;
+    listaSaidasMes.hidden = saidasMes.length === 0;
     $("#rel-vazio-entradas").hidden = entradasMes.length > 0;
     relListaEntradas.hidden = entradasMes.length === 0;
     $("#rel-vazio-saidas").hidden = saidasMes.length > 0;
@@ -518,7 +533,8 @@
     $("#secao-pendencias").hidden = pendentesFiltrados.length === 0;
     $("#rel-secao-pendencias").hidden = quadro.pendentes.length === 0;
     desenharLista(pendentesFiltrados, $("#pendencias"), false);
-    desenharLista(doMesFiltrado, lista, false);
+    desenharLista(entradasVisiveis, listaEntradasMes, false);
+    desenharLista(saidasMes, listaSaidasMes, false);
     desenharLista(quadro.pendentes, $("#rel-pendencias"), true);
     desenharLista(entradasMes, relListaEntradas, true);
     desenharLista(saidasMes, relListaSaidas, true);
@@ -1284,7 +1300,6 @@
   modalLancamento.addEventListener("click", (event) => {
     if (event.target === modalLancamento) limparFormulario();
   });
-  $("#filtro-tipo").addEventListener("change", render);
   $("#filtro-situacao").addEventListener("change", render);
   $("#rel-filtro-entrada").addEventListener("click", () => mostrarListaRelatorio("entrada"));
   $("#rel-filtro-saida").addEventListener("click", () => mostrarListaRelatorio("saida"));
@@ -1322,7 +1337,8 @@
     if (botao.dataset.acao === "desfazer") alterarRecebimento(item, botao.dataset.competencia, false);
   }
 
-  lista.addEventListener("click", aoClicarLista);
+  listaEntradasMes.addEventListener("click", aoClicarLista);
+  listaSaidasMes.addEventListener("click", aoClicarLista);
   $("#pendencias").addEventListener("click", aoClicarLista);
 
   $("#confirma-nao").addEventListener("click", () => {

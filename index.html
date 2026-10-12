@@ -15,7 +15,7 @@
   <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/app.css?v=24">
+  <link rel="stylesheet" href="css/app.css?v=28">
   <style>
     html, body { margin: 0; }
     html { background: #001F60; }
@@ -303,9 +303,41 @@
         </dialog>
 
         <div class="coluna-listas">
+        <div class="lancamento-topo">
+          <button type="button" class="abrir-desk" id="abrir-lancamento-desk">Registrar lançamento</button>
+        </div>
         <button type="button" class="abrir-lancamento" id="abrir-lancamento" aria-label="Registrar lançamento">
           <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
         </button>
+
+        <section class="resumo" aria-label="Totais do mês">
+          <article class="stat ganhei">
+            <span class="stat-rotulo">Já recebi</span>
+            <strong id="lan-total-recebi">R$&nbsp;0,00</strong>
+            <small id="lan-qtd-recebi">neste mês</small>
+          </article>
+          <article class="stat falta" id="lan-cartao-falta">
+            <span class="stat-rotulo">Falta receber</span>
+            <strong id="lan-total-falta">R$&nbsp;0,00</strong>
+            <small id="lan-qtd-falta">nada pendente</small>
+          </article>
+          <article class="stat previsao">
+            <span class="stat-rotulo">Previsão</span>
+            <strong id="lan-total-previsao">R$&nbsp;0,00</strong>
+            <small id="lan-qtd-previsao">recebido + pendente</small>
+          </article>
+          <article class="stat gastei">
+            <span class="stat-rotulo">Saídas</span>
+            <strong id="lan-total-gastei">R$&nbsp;0,00</strong>
+            <small id="lan-qtd-saidas">0 saídas</small>
+          </article>
+          <article class="stat sobrou" id="lan-cartao-sobrou">
+            <span class="stat-rotulo">Sobra em caixa</span>
+            <strong id="lan-total-sobrou">R$&nbsp;0,00</strong>
+            <small id="lan-legenda-sobrou">já recebido menos as saídas</small>
+          </article>
+        </section>
+
         <section class="cartao lista-cartao" id="secao-pendencias" hidden>
           <div class="cartao-topo">
             <h2 id="titulo-pendencias">Ainda pendentes</h2>
@@ -314,33 +346,41 @@
           <ul class="lista" id="pendencias"></ul>
         </section>
 
-        <section class="cartao lista-cartao" aria-labelledby="titulo-lista">
-          <div class="lista-comandos">
-            <div class="filtros">
-              <select id="filtro-tipo" aria-label="Filtrar por tipo">
-                <option value="">Todos</option>
-                <option value="entrada">Entradas</option>
-                <option value="saida">Saídas</option>
-              </select>
-              <select id="filtro-situacao" aria-label="Filtrar por situação">
+        <div class="listas-tipo">
+          <section class="cartao lista-cartao lista-entradas" aria-labelledby="titulo-entradas-mes">
+            <div class="lista-comandos">
+              <h2 id="titulo-entradas-mes">Entradas</h2>
+              <select id="filtro-situacao" aria-label="Filtrar entradas por situação">
                 <option value="">Todas as situações</option>
                 <option value="pago">Recebidos</option>
                 <option value="a_receber">A receber</option>
                 <option value="em_atraso">Em atraso</option>
               </select>
             </div>
-            <button type="button" class="abrir-desk" id="abrir-lancamento-desk">Registrar lançamento</button>
-          </div>
-          <div class="cartao-topo">
-            <h2 id="titulo-lista">Lançamentos do mês</h2>
-            <span class="contagem" id="contagem-lista">0 lançamentos</span>
-          </div>
-          <div class="vazio" id="vazio">
-            <img src="assets/icons/icon-192.png" alt="">
-            <p id="vazio-texto">Nenhum lançamento neste mês.</p>
-          </div>
-          <ul class="lista" id="lista" hidden></ul>
-        </section>
+            <div class="cartao-topo">
+              <span class="contagem" id="lan-contagem-entradas">0 entradas</span>
+              <strong class="soma-lista entrada" id="lan-soma-entradas">R$&nbsp;0,00</strong>
+            </div>
+            <div class="vazio" id="vazio-entradas-mes">
+              <p id="vazio-entradas-mes-texto">Nenhuma entrada neste mês.</p>
+            </div>
+            <ul class="lista" id="lista-entradas-mes" hidden></ul>
+          </section>
+
+          <section class="cartao lista-cartao lista-saidas" aria-labelledby="titulo-saidas-mes">
+            <div class="lista-comandos">
+              <h2 id="titulo-saidas-mes">Saídas</h2>
+            </div>
+            <div class="cartao-topo">
+              <span class="contagem" id="lan-contagem-saidas">0 saídas</span>
+              <strong class="soma-lista saida" id="lan-soma-saidas">R$&nbsp;0,00</strong>
+            </div>
+            <div class="vazio" id="vazio-saidas-mes">
+              <p id="vazio-saidas-mes-texto">Nenhuma saída neste mês.</p>
+            </div>
+            <ul class="lista" id="lista-saidas-mes" hidden></ul>
+          </section>
+        </div>
         </div>
       </div>
       </section>
@@ -511,6 +551,6 @@
   </dialog>
 
   <script src="js/atualizar.js?v=1"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/app.js?v=22"></script>
 </body>
 </html>

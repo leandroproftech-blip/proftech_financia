@@ -817,7 +817,43 @@ body.sem-mes .topbar .mes-nav { display: none; }
   display: grid;
   gap: 16px;
   align-content: start;
+  min-width: 0;
 }
+
+.coluna-listas > * { min-width: 0; }
+
+.lancamento-topo { display: none; }
+
+.listas-tipo {
+  display: grid;
+  gap: 16px;
+}
+
+.lista-comandos h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.lista-comandos select {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f3f6fb;
+  color: var(--navy);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.soma-lista {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.soma-lista.entrada { color: var(--mint-ink); }
+
+.soma-lista.saida { color: var(--rose-ink); }
 
 .grupo-opcao {
   margin: 0;
@@ -1456,7 +1492,29 @@ body.sem-mes .topbar .mes-nav { display: none; }
     margin-top: 0;
   }
 
+  .listas-tipo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .listas-tipo > * { min-width: 0; }
+
+  .lancamento-topo {
+    display: flex;
+    justify-content: flex-end;
+  }
+
   .lista-comandos { flex-wrap: nowrap; }
+
+  .listas-tipo .lista-comandos { flex-wrap: wrap; }
+
+  .listas-tipo .item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "corpo valor"
+      "acoes acoes";
+    gap: 4px 12px;
+  }
 
   .abrir-desk,
   .abrir-cliente { display: inline-flex; }
