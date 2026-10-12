@@ -25,10 +25,7 @@ function erro(int $status, string $mensagem): void
 try {
     $db = conectar();
 } catch (mysqli_sql_exception $e) {
-    $mensagem = str_starts_with($e->getMessage(), 'Falta')
-        ? 'Falta o arquivo de conexão do servidor.'
-        : 'O banco não está disponível.';
-    erro(503, $mensagem);
+    erro(503, 'Não foi possível conectar ao banco.');
 }
 
 function lerJson(): array
