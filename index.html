@@ -15,7 +15,7 @@
   <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/app.css?v=31">
+  <link rel="stylesheet" href="css/app.css?v=33">
   <style>
     html, body { margin: 0; }
     html { background: #001F60; }
@@ -338,6 +338,11 @@
           </article>
         </section>
 
+        <div class="filtro-relatorio filtro-lancamento" role="group" aria-label="Filtrar lançamentos">
+          <button type="button" id="lan-filtro-entrada" class="ativo" aria-pressed="true">Entradas</button>
+          <button type="button" id="lan-filtro-saida" aria-pressed="false">Saídas</button>
+        </div>
+
         <section class="cartao lista-cartao" id="secao-pendencias" hidden>
           <div class="cartao-topo">
             <h2 id="titulo-pendencias">Ainda pendentes</h2>
@@ -545,6 +550,6 @@
   </dialog>
 
   <script src="js/atualizar.js?v=1"></script>
-  <script src="js/app.js?v=23"></script>
+  <script src="js/app.js?v=24"></script>
 </body>
 </html>

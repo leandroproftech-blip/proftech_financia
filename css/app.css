@@ -1249,10 +1249,13 @@ body.sem-mes .topbar .mes-nav { display: none; }
   color: var(--navy);
 }
 
-#rel-filtro-saida.ativo {
+#rel-filtro-saida.ativo,
+#lan-filtro-saida.ativo {
   background: var(--rose);
   color: #fff;
 }
+
+.filtro-lancamento { display: none; }
 
 .filtro-oculto { display: none; }
 
@@ -1613,24 +1616,108 @@ body.na-aba-lancamentos .listas-tipo .lista {
   body.na-aba-lancamentos .listas-tipo {
     grid-template-rows: minmax(0, 1fr);
   }
+
+  #aba-lancamentos .lista-entradas.filtro-oculto,
+  #aba-lancamentos .lista-saidas.filtro-oculto {
+    display: flex;
+  }
+
+  #secao-pendencias.filtro-oculto:not([hidden]) { display: block; }
 }
 
 @media (max-width: 899px) {
-  body.na-aba-lancamentos .listas-tipo {
+  body.na-aba-lancamentos,
+  body.na-aba-lancamentos .app {
+    height: auto;
+    overflow: visible;
+  }
+
+  body.na-aba-lancamentos .app { display: block; }
+
+  body.na-aba-lancamentos .corpo,
+  body.na-aba-lancamentos .miolo,
+  body.na-aba-lancamentos .conteudo,
+  body.na-aba-lancamentos #aba-lancamentos,
+  body.na-aba-lancamentos .painel,
+  body.na-aba-lancamentos .coluna-listas {
+    display: block;
+    height: auto;
+    overflow: visible;
+    flex: none;
+  }
+
+  body.na-aba-lancamentos .coluna-listas {
+    display: grid;
+    gap: 16px;
+  }
+
+  body.na-aba-lancamentos .conteudo { margin: 24px auto 12px; }
+
+  body.na-aba-lancamentos #aba-lancamentos .resumo {
     display: flex;
-    flex-direction: column;
-    overflow: auto;
-    overscroll-behavior: contain;
+    flex-wrap: nowrap;
+    gap: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
   }
 
-  body.na-aba-lancamentos .listas-tipo > .cartao {
-    flex: none;
+  body.na-aba-lancamentos #aba-lancamentos .resumo .stat {
+    flex: 0 0 240px;
+    scroll-snap-align: start;
+    min-height: 84px;
+    padding: 16px 18px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "rotulo valor"
+      "qtd valor";
+    align-items: center;
+  }
+
+  body.na-aba-lancamentos #aba-lancamentos .resumo .stat strong {
+    margin-top: 0;
+    font-size: 1.25rem;
+    text-align: right;
+  }
+
+  body.na-aba-lancamentos #aba-lancamentos .stat.sobrou { grid-column: auto; }
+
+  body.na-aba-lancamentos #secao-pendencias {
+    max-height: none;
+    overflow: visible;
+    display: block;
+  }
+
+  body.na-aba-lancamentos #secao-pendencias .lista { overflow: visible; }
+
+  body.na-aba-lancamentos .listas-tipo {
+    display: grid;
+    grid-template-columns: 1fr;
     overflow: visible;
   }
 
+  body.na-aba-lancamentos .listas-tipo > .cartao,
   body.na-aba-lancamentos .listas-tipo .lista {
-    flex: none;
+    display: block;
     overflow: visible;
+    min-height: auto;
+  }
+
+  body.na-aba-lancamentos .listas-tipo .item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "corpo valor"
+      "acoes acoes";
+    gap: 4px 12px;
+  }
+
+  .filtro-lancamento { display: grid; }
+
+  body.na-aba-lancamentos .listas-tipo > .cartao.filtro-oculto,
+  body.na-aba-lancamentos #secao-pendencias.filtro-oculto {
+    display: none;
   }
 }
 

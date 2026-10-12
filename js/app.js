@@ -33,6 +33,7 @@
   const relListaEntradas = $("#rel-lista-entradas");
   const relListaSaidas = $("#rel-lista-saidas");
   let listaRelatorio = "entrada";
+  let listaLancamento = "entrada";
   const relCartaoSobrou = $("#rel-cartao-sobrou");
   const marcaSub = $("#marca-sub");
   const toast = $("#toast");
@@ -529,7 +530,10 @@
     desenharLista(saidasMes, relListaSaidas, true);
     $("#rel-filtro-entrada").textContent = `Entradas · ${entradasMes.length}`;
     $("#rel-filtro-saida").textContent = `Saídas · ${saidasMes.length}`;
+    $("#lan-filtro-entrada").textContent = `Entradas · ${entradasMes.length}`;
+    $("#lan-filtro-saida").textContent = `Saídas · ${saidasMes.length}`;
     mostrarListaRelatorio(listaRelatorio);
+    mostrarListaLancamento(listaLancamento);
     renderVisao();
 
     document.title = `profTech Financeiro · ${nomeMes}`;
@@ -666,6 +670,18 @@
       li.append(corpo, valor);
       listaGastos.append(li);
     });
+  }
+
+  function mostrarListaLancamento(tipo) {
+    listaLancamento = tipo === "saida" ? "saida" : "entrada";
+    const entradas = listaLancamento === "entrada";
+    document.querySelector("#aba-lancamentos .lista-entradas").classList.toggle("filtro-oculto", !entradas);
+    document.querySelector("#aba-lancamentos .lista-saidas").classList.toggle("filtro-oculto", entradas);
+    $("#secao-pendencias").classList.toggle("filtro-oculto", !entradas);
+    $("#lan-filtro-entrada").classList.toggle("ativo", entradas);
+    $("#lan-filtro-saida").classList.toggle("ativo", !entradas);
+    $("#lan-filtro-entrada").setAttribute("aria-pressed", String(entradas));
+    $("#lan-filtro-saida").setAttribute("aria-pressed", String(!entradas));
   }
 
   function mostrarListaRelatorio(tipo) {
@@ -1292,6 +1308,8 @@
   });
   $("#rel-filtro-entrada").addEventListener("click", () => mostrarListaRelatorio("entrada"));
   $("#rel-filtro-saida").addEventListener("click", () => mostrarListaRelatorio("saida"));
+  $("#lan-filtro-entrada").addEventListener("click", () => mostrarListaLancamento("entrada"));
+  $("#lan-filtro-saida").addEventListener("click", () => mostrarListaLancamento("saida"));
 
   function alinharMenu() {
     const barra = document.querySelector(".topbar");
