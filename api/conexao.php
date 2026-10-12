@@ -24,13 +24,15 @@ function configuracaoBanco(): array
         ];
     }
 
-    return [
-        'host' => 'localhost',
-        'usuario' => 'u749079336_financesPT',
-        'senha' => '0Qn16S2l@',
-        'banco' => 'u749079336_financesPT',
-        'porta' => 3306,
-    ];
+    $arquivo = __DIR__ . '/credenciais.php';
+    if (!is_file($arquivo)) {
+        throw new mysqli_sql_exception('Falta o arquivo de conexão do servidor.');
+    }
+    $cfg = require $arquivo;
+    if (!is_array($cfg)) {
+        throw new mysqli_sql_exception('O arquivo de conexão do servidor é inválido.');
+    }
+    return $cfg;
 }
 
 function garantirTabelas(mysqli $db): void

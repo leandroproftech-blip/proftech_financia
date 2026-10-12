@@ -182,7 +182,10 @@ try {
     $db = conectar();
     garantirUsuarios($db);
 } catch (mysqli_sql_exception $e) {
-    erro(503, 'Não foi possível conectar ao banco.');
+    $mensagem = str_starts_with($e->getMessage(), 'Falta')
+        ? 'Falta o arquivo de conexão do servidor.'
+        : 'Não foi possível conectar ao banco.';
+    erro(503, $mensagem);
 }
 
 iniciarSessao();
