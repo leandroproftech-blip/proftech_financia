@@ -1114,11 +1114,14 @@
   $("#form-cliente").addEventListener("submit", salvarCliente);
   $("#cancelar-cliente").addEventListener("click", limparCliente);
   $("#busca-cliente").addEventListener("input", renderClientes);
-  $("#abrir-cliente").addEventListener("click", () => {
+  function abrirNovoCliente() {
     limparCliente();
     abrirCliente();
     $("#cliente-nome").focus();
-  });
+  }
+
+  $("#abrir-cliente").addEventListener("click", abrirNovoCliente);
+  $("#abrir-cliente-movel").addEventListener("click", abrirNovoCliente);
   $("#fechar-cliente").addEventListener("click", limparCliente);
   modalCliente.addEventListener("cancel", (event) => {
     event.preventDefault();
