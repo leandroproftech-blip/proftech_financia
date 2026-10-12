@@ -1,0 +1,4 @@
+AddType application/manifest+json .webmanifest
+AddType font/woff2 .woff2
+AddType application/javascript .js
+AddType text/css .css

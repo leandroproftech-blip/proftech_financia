@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#001F60">
+  <meta name="description" content="Controle mensal de entradas, saídas e saldo da profTech.">
+  <meta name="robots" content="noindex">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="profTech">
+  <title>profTech Financeiro</title>
+  <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <style>
+    html, body { margin: 0; }
+    html { background: #001F60; }
+    .splash {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(1, 221, 149, 0.16), transparent 26%),
+        #001F60;
+      color: #fff;
+    }
+    .splash-logo { width: min(280px, 70vw); height: auto; }
+    .loader {
+      width: min(168px, 46vw);
+      height: 4px;
+      margin-top: 28px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.16);
+      overflow: hidden;
+    }
+    .loader span {
+      display: block;
+      width: 42%;
+      height: 100%;
+      border-radius: inherit;
+      background: #01DD95;
+      animation: carga 1.05s ease-in-out infinite;
+    }
+    @keyframes carga {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(280%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .loader span { animation: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash" id="splash" role="status" aria-live="polite" aria-label="Carregando profTech Financeiro">
+    <img class="splash-logo" src="assets/emblema.png" alt="Emblema profTech" fetchpriority="high">
+    <div class="loader" aria-hidden="true"><span></span></div>
+    <p class="splash-nome">profTech Financeiro</p>
+  </div>
+
+  <noscript>
+    <p class="sem-js">Ative o JavaScript para usar o profTech Financeiro.</p>
+  </noscript>
+
+  <a class="pular" href="#conteudo">Ir para o conteúdo</a>
+
+  <div class="app" id="app" aria-hidden="true">
+    <header class="topbar">
+      <div class="marca">
+        <img src="assets/icons/icon-192.png" alt="">
+        <div>
+          <h1>profTech Financeiro</h1>
+          <p id="marca-sub">Entradas, saídas e o que ainda falta receber</p>
+        </div>
+      </div>
+
+      <nav class="abas" aria-label="Seções">
+        <button type="button" data-aba="lancamentos" class="ativo" aria-current="page">Lançamentos</button>
+        <button type="button" data-aba="relatorios">Relatórios</button>
+      </nav>
+
+      <div class="mes-nav">
+        <button type="button" id="mes-anterior" aria-label="Mês anterior">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="mes-escolha">
+          <span id="mes-rotulo" aria-hidden="true">Mês</span>
+          <input type="month" id="mes" aria-label="Escolher mês">
+        </div>
+        <button type="button" id="mes-proximo" aria-label="Próximo mês">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <button type="button" class="instalar" id="instalar" hidden>Instalar app</button>
+    </header>
+
+    <main class="conteudo" id="conteudo">
+      <section class="aba" id="aba-lancamentos">
+      <p class="sr" id="resumo-vivo" aria-live="polite"></p>
+
+      <section class="resumo" aria-label="Resumo do mês">
+        <article class="stat ganhei">
+          <span class="stat-rotulo">Já recebi</span>
+          <strong id="total-recebi">R$&nbsp;0,00</strong>
+          <small id="qtd-recebi">neste mês</small>
+        </article>
+        <article class="stat falta" id="cartao-falta">
+          <span class="stat-rotulo">Falta receber</span>
+          <strong id="total-falta">R$&nbsp;0,00</strong>
+          <small id="qtd-falta">nada pendente</small>
+        </article>
+        <article class="stat previsao">
+          <span class="stat-rotulo">Previsão</span>
+          <strong id="total-previsao">R$&nbsp;0,00</strong>
+          <small id="qtd-previsao">recebido + pendente</small>
+        </article>
+        <article class="stat gastei">
+          <span class="stat-rotulo">Saídas</span>
+          <strong id="total-gastei">R$&nbsp;0,00</strong>
+          <small id="qtd-saidas">0 saídas</small>
+        </article>
+        <article class="stat sobrou" id="cartao-sobrou">
+          <span class="stat-rotulo">Sobra em caixa</span>
+          <strong id="total-sobrou">R$&nbsp;0,00</strong>
+          <small id="legenda-sobrou">já recebido menos as saídas</small>
+        </article>
+      </section>
+
+      <div class="painel">
+        <section class="cartao form-cartao" aria-labelledby="titulo-form">
+          <div class="cartao-topo">
+            <h2 id="titulo-form">Registrar lançamento</h2>
+          </div>
+          <form class="formulario" id="formulario" novalidate>
+            <div class="tipos" role="radiogroup" aria-label="Tipo de lançamento">
+              <label>
+                <input type="radio" name="tipo" value="entrada" checked>
+                <span>Entrada</span>
+              </label>
+              <label>
+                <input type="radio" name="tipo" value="saida">
+                <span>Saída</span>
+              </label>
+            </div>
+
+            <div id="opcoes-entrada">
+              <fieldset class="grupo-opcao">
+                <legend>Situação</legend>
+                <div class="tipos" role="radiogroup" aria-label="Situação da entrada">
+                  <label>
+                    <input type="radio" name="situacao" value="a_receber" checked>
+                    <span>A receber</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="situacao" value="recebido">
+                    <span>Recebido</span>
+                  </label>
+                </div>
+              </fieldset>
+              <fieldset class="grupo-opcao">
+                <legend>Cobrança</legend>
+                <div class="tipos" role="radiogroup" aria-label="Tipo de cobrança">
+                  <label>
+                    <input type="radio" name="modalidade" value="avulsa" checked>
+                    <span>Avulsa</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="modalidade" value="recorrente">
+                    <span>Recorrente</span>
+                  </label>
+                </div>
+              </fieldset>
+              <p class="dica" id="dica-cobranca"></p>
+            </div>
+
+            <label class="campo">
+              <span>Valor</span>
+              <div class="valor-box">
+                <span aria-hidden="true">R$</span>
+                <input id="valor" name="valor" inputmode="decimal" autocomplete="off" placeholder="0,00" required>
+              </div>
+            </label>
+
+            <label class="campo">
+              <span>Descrição</span>
+              <input id="descricao" name="descricao" type="text" maxlength="80" placeholder="Ex.: mensalidade, aluguel, material" required>
+            </label>
+
+            <label class="campo">
+              <span id="rotulo-data">Vencimento</span>
+              <input id="data" name="data" type="date" required>
+            </label>
+
+            <p class="erro" id="erro" role="alert" hidden></p>
+
+            <div class="form-acoes">
+              <button type="submit" class="principal" id="salvar">Registrar</button>
+              <button type="button" class="secundario" id="cancelar" hidden>Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="coluna-listas">
+        <section class="cartao lista-cartao" id="secao-pendencias" hidden>
+          <div class="cartao-topo">
+            <h2 id="titulo-pendencias">Ainda pendentes</h2>
+            <span class="contagem" id="contagem-pendencias">0 pendentes</span>
+          </div>
+          <p class="dica dica-lista">Continuam em aberto mesmo quando o mês vira.</p>
+          <ul class="lista" id="pendencias"></ul>
+        </section>
+
+        <section class="cartao lista-cartao" aria-labelledby="titulo-lista">
+          <div class="cartao-topo">
+            <h2 id="titulo-lista">Lançamentos do mês</h2>
+            <span class="contagem" id="contagem-lista">0 lançamentos</span>
+          </div>
+          <div class="vazio" id="vazio">
+            <img src="assets/icons/icon-192.png" alt="">
+            <p id="vazio-texto">Nenhum lançamento neste mês.</p>
+            <p class="vazio-sub">Registre uma entrada ou uma saída para ver quanto sobrou.</p>
+          </div>
+          <ul class="lista" id="lista" hidden></ul>
+        </section>
+        </div>
+      </div>
+      </section>
+
+      <section class="aba" id="aba-relatorios" hidden>
+        <div class="relatorio-comandos">
+          <div>
+            <h2>Relatório do mês</h2>
+            <p class="relatorio-intro">O que já entrou, o que ainda falta receber e a sobra em caixa depois das saídas.</p>
+          </div>
+          <div class="relatorio-ferramentas">
+            <div class="mes-nav claro">
+              <button type="button" id="rel-mes-anterior" aria-label="Mês anterior do relatório">
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="mes-escolha">
+                <span id="rel-mes-rotulo" aria-hidden="true">Mês</span>
+                <input type="month" id="rel-mes" aria-label="Mês do relatório">
+              </div>
+              <button type="button" id="rel-mes-proximo" aria-label="Próximo mês do relatório">
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <button type="button" class="principal" id="imprimir">Imprimir</button>
+          </div>
+        </div>
+
+        <section class="resumo" aria-label="Resumo do relatório">
+          <article class="stat ganhei">
+            <span class="stat-rotulo">Já recebi</span>
+            <strong id="rel-total-recebi">R$&nbsp;0,00</strong>
+            <small id="rel-qtd-recebi">neste mês</small>
+          </article>
+          <article class="stat falta" id="rel-cartao-falta">
+            <span class="stat-rotulo">Falta receber</span>
+            <strong id="rel-total-falta">R$&nbsp;0,00</strong>
+            <small id="rel-qtd-falta">nada pendente</small>
+          </article>
+          <article class="stat previsao">
+            <span class="stat-rotulo">Previsão</span>
+            <strong id="rel-total-previsao">R$&nbsp;0,00</strong>
+            <small id="rel-qtd-previsao">recebido + pendente</small>
+          </article>
+          <article class="stat gastei">
+            <span class="stat-rotulo">Saídas</span>
+            <strong id="rel-total-gastei">R$&nbsp;0,00</strong>
+            <small id="rel-qtd-saidas">0 saídas</small>
+          </article>
+          <article class="stat sobrou" id="rel-cartao-sobrou">
+            <span class="stat-rotulo">Sobra em caixa</span>
+            <strong id="rel-total-sobrou">R$&nbsp;0,00</strong>
+            <small id="rel-legenda-sobrou">já recebido menos as saídas</small>
+          </article>
+        </section>
+
+        <section class="cartao lista-cartao" id="rel-secao-pendencias" hidden>
+          <div class="cartao-topo">
+            <h2>Ainda pendentes</h2>
+            <span class="contagem" id="rel-contagem-pendencias">0 pendentes</span>
+          </div>
+          <p class="dica dica-lista">Cobranças em aberto de outros meses.</p>
+          <ul class="lista" id="rel-pendencias"></ul>
+        </section>
+
+        <section class="cartao lista-cartao" aria-labelledby="titulo-relatorio">
+          <div class="cartao-topo">
+            <h2 id="titulo-relatorio">Movimentações</h2>
+            <span class="contagem" id="rel-contagem">0 lançamentos</span>
+          </div>
+          <div class="vazio" id="rel-vazio">
+            <img src="assets/icons/icon-192.png" alt="">
+            <p id="rel-vazio-texto">Nenhum lançamento neste mês.</p>
+            <p class="vazio-sub">Quando houver registros, eles aparecem aqui.</p>
+          </div>
+          <ul class="lista" id="rel-lista" hidden></ul>
+        </section>
+      </section>
+    </main>
+
+    <footer class="rodape">
+      <p>Os lançamentos ficam salvos no banco e aparecem no celular e no computador.</p>
+      <p id="dica-ios" hidden>No iPhone, toque em Compartilhar e depois em Adicionar à Tela de Início.</p>
+    </footer>
+
+    <nav class="menu-baixo" aria-label="Seções">
+      <button type="button" data-aba="lancamentos" class="ativo" aria-current="page">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 6h11M8 12h11M8 18h11M4 6h.01M4 12h.01M4 18h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Lançamentos</span>
+      </button>
+      <button type="button" data-aba="relatorios">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 3.5h7.2L19 8.2V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 3.5V8h4.5M9 13h6M9 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>Relatórios</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="dialogo" id="dialogo" aria-labelledby="dialogo-titulo">
+    <h3 id="dialogo-titulo">Excluir lançamento</h3>
+    <p id="confirma-texto"></p>
+    <div class="dialogo-acoes">
+      <button type="button" class="secundario" id="confirma-nao">Cancelar</button>
+      <button type="button" class="perigo" id="confirma-sim">Excluir</button>
+    </div>
+  </dialog>
+
+  <script src="js/app.js?v=6"></script>
+</body>
+</html>
