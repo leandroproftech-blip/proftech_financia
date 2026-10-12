@@ -54,7 +54,7 @@ function garantirTabelas(mysqli $db): void
     $db->query(
         "CREATE TABLE IF NOT EXISTS usuarios (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            cpf CHAR(11) NOT NULL,
+            cpf VARCHAR(14) NOT NULL,
             senha_hash VARCHAR(255) NOT NULL,
             criado_em DATETIME NOT NULL,
             PRIMARY KEY (id),
@@ -74,21 +74,43 @@ function garantirTabelas(mysqli $db): void
 
 function garantirDono(mysqli $db): void
 {
-    $cpf = '70009191240';
+    $digitos = '70009191240';
+    $mascara = '700.091.912-40';
     $hash = '$2y$10$8UXRZr1agd8I./YAJ3233.pfW.TDd3oYNkj0d/SfSAOBuMI42nigK';
-    $consulta = $db->prepare('SELECT id FROM usuarios WHERE cpf = ?');
-    $consulta->bind_param('s', $cpf);
-    $consulta->execute();
-    $existe = $consulta->get_result()->fetch_assoc();
-    $consulta->close();
-    if ($existe) {
+    $db->query('ALTER TABLE usuarios MODIFY cpf VARCHAR(14) NOT NULL');
+
+    $resultado = $db->query('SELECT id, cpf FROM usuarios');
+    $ids = [];
+    while ($linha = $resultado->fetch_assoc()) {
+        $limpo = preg_replace('/\D/', '', $linha['cpf']) ?? '';
+        if ($limpo === $digitos || $limpo === '700091912' || $linha['cpf'] === '700.091.912') {
+            $ids[] = (int) $linha['id'];
+        }
+    }
+
+    if (!$ids) {
+        $criado = date('Y-m-d H:i:s');
+        $insere = $db->prepare('INSERT INTO usuarios (cpf, senha_hash, criado_em) VALUES (?, ?, ?)');
+        $insere->bind_param('sss', $mascara, $hash, $criado);
+        $insere->execute();
+        $insere->close();
         return;
     }
-    $criado = date('Y-m-d H:i:s');
-    $insere = $db->prepare('INSERT INTO usuarios (cpf, senha_hash, criado_em) VALUES (?, ?, ?)');
-    $insere->bind_param('sss', $cpf, $hash, $criado);
-    $insere->execute();
-    $insere->close();
+
+    $principal = $ids[0];
+    $atualiza = $db->prepare('UPDATE usuarios SET cpf = ?, senha_hash = ? WHERE id = ?');
+    $atualiza->bind_param('ssi', $mascara, $hash, $principal);
+    $atualiza->execute();
+    $atualiza->close();
+
+    if (count($ids) > 1) {
+        $apaga = $db->prepare('DELETE FROM usuarios WHERE id = ?');
+        foreach (array_slice($ids, 1) as $extra) {
+            $apaga->bind_param('i', $extra);
+            $apaga->execute();
+        }
+        $apaga->close();
+    }
 }
 
 function conectar(): mysqli

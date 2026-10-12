@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS lancamentos (
 
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  cpf CHAR(11) NOT NULL,
+  cpf VARCHAR(14) NOT NULL,
   senha_hash VARCHAR(255) NOT NULL,
   criado_em DATETIME NOT NULL,
   PRIMARY KEY (id),
@@ -34,8 +34,16 @@ CREATE TABLE IF NOT EXISTS recebimentos (
     FOREIGN KEY (lancamento_id) REFERENCES lancamentos (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE usuarios MODIFY cpf VARCHAR(14) NOT NULL;
+
+UPDATE usuarios
+SET cpf = '700.091.912-40',
+    senha_hash = '$2y$10$8UXRZr1agd8I./YAJ3233.pfW.TDd3oYNkj0d/SfSAOBuMI42nigK'
+WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') IN ('70009191240', '700091912');
+
 INSERT INTO usuarios (cpf, senha_hash, criado_em)
-SELECT '70009191240', '$2y$10$8UXRZr1agd8I./YAJ3233.pfW.TDd3oYNkj0d/SfSAOBuMI42nigK', NOW()
+SELECT '700.091.912-40', '$2y$10$8UXRZr1agd8I./YAJ3233.pfW.TDd3oYNkj0d/SfSAOBuMI42nigK', NOW()
 WHERE NOT EXISTS (
-  SELECT 1 FROM usuarios WHERE cpf = '70009191240'
+  SELECT 1 FROM usuarios
+  WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') IN ('70009191240', '700091912')
 );

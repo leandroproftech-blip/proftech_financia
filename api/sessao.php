@@ -37,7 +37,7 @@ function garantirUsuarios(mysqli $db): void
     $db->query(
         'CREATE TABLE IF NOT EXISTS usuarios (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            cpf CHAR(11) NOT NULL,
+            cpf VARCHAR(14) NOT NULL,
             senha_hash VARCHAR(255) NOT NULL,
             criado_em DATETIME NOT NULL,
             PRIMARY KEY (id),
@@ -110,7 +110,10 @@ function senhaValida(string $senha): bool
 
 function buscarPorCpf(mysqli $db, string $cpf): ?array
 {
-    $consulta = $db->prepare('SELECT id, cpf, senha_hash FROM usuarios WHERE cpf = ?');
+    $consulta = $db->prepare(
+        "SELECT id, cpf, senha_hash FROM usuarios
+         WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') = ?"
+    );
     $consulta->bind_param('s', $cpf);
     $consulta->execute();
     $linha = $consulta->get_result()->fetch_assoc();
