@@ -1658,7 +1658,8 @@ body.na-aba-lancamentos .listas-tipo .lista {
     flex-wrap: nowrap;
     gap: 12px;
     overflow-x: auto;
-    overscroll-behavior-x: contain;
+    overscroll-behavior: contain;
+    touch-action: pan-x;
     scroll-snap-type: x mandatory;
     padding-bottom: 6px;
     scrollbar-width: thin;

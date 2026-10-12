@@ -68,8 +68,23 @@
     document.body.append(aviso);
 
     let puxando = false;
+    let inicioX = 0;
     let inicioY = 0;
     let distancia = 0;
+    let eixo = "";
+
+    function emRolagemHorizontal(event) {
+      const alvo = event.target;
+      if (!alvo || !alvo.closest) return false;
+      let el = alvo.nodeType === 1 ? alvo : alvo.parentElement;
+      while (el && el !== document.body) {
+        const estilo = getComputedStyle(el);
+        const eixoX = estilo.overflowX;
+        if ((eixoX === "auto" || eixoX === "scroll") && el.scrollWidth > el.clientWidth + 8) return true;
+        el = el.parentElement;
+      }
+      return false;
+    }
 
     function podePuxar(event) {
       if (!appInstalado()) return false;
@@ -77,6 +92,7 @@
       if (document.querySelector("dialog[open]")) return false;
       const alvo = event.target;
       if (alvo && alvo.closest && alvo.closest("input, textarea, select, button, a")) return false;
+      if (emRolagemHorizontal(event)) return false;
       return true;
     }
 
@@ -98,8 +114,10 @@
         return;
       }
       puxando = true;
+      inicioX = event.touches[0].clientX;
       inicioY = event.touches[0].clientY;
       distancia = 0;
+      eixo = "";
     }, { passive: true });
 
     window.addEventListener("touchmove", (event) => {
@@ -109,7 +127,18 @@
         esconder();
         return;
       }
-      distancia = event.touches[0].clientY - inicioY;
+      const toque = event.touches[0];
+      const deslocamentoX = toque.clientX - inicioX;
+      const deslocamentoY = toque.clientY - inicioY;
+      if (!eixo && (Math.abs(deslocamentoX) > 10 || Math.abs(deslocamentoY) > 10)) {
+        eixo = Math.abs(deslocamentoX) > Math.abs(deslocamentoY) ? "x" : "y";
+      }
+      if (eixo === "x") {
+        puxando = false;
+        esconder();
+        return;
+      }
+      distancia = deslocamentoY;
       if (distancia <= 0) {
         esconder();
         return;
