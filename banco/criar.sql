@@ -33,3 +33,9 @@ CREATE TABLE IF NOT EXISTS recebimentos (
   CONSTRAINT fk_recebimentos_lancamento
     FOREIGN KEY (lancamento_id) REFERENCES lancamentos (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO usuarios (cpf, senha_hash, criado_em)
+SELECT '70009191240', '$2y$10$8UXRZr1agd8I./YAJ3233.pfW.TDd3oYNkj0d/SfSAOBuMI42nigK', NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM usuarios WHERE cpf = '70009191240'
+);
