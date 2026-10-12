@@ -23,6 +23,7 @@
   const botaoSalvar = $("#salvar");
   const botaoCancelar = $("#cancelar");
   const modalLancamento = $("#modal-lancamento");
+  const modalCliente = $("#modal-cliente");
   const lista = $("#lista");
   const vazio = $("#vazio");
   const vazioTexto = $("#vazio-texto");
@@ -33,6 +34,7 @@
   const relMesRotulo = $("#rel-mes-rotulo");
   const relListaEntradas = $("#rel-lista-entradas");
   const relListaSaidas = $("#rel-lista-saidas");
+  let listaRelatorio = "entrada";
   const relCartaoSobrou = $("#rel-cartao-sobrou");
   const marcaSub = $("#marca-sub");
   const toast = $("#toast");
@@ -42,11 +44,14 @@
   const botaoInstalar = $("#instalar");
 
   let lancamentos = [];
+  let clientes = [];
   let mes = mesSalvo();
   let ocupado = false;
   let dadosProntos = Promise.resolve();
   let editandoId = null;
   let excluindoId = null;
+  let editandoClienteId = null;
+  let excluindoClienteId = null;
   let toastTimer = 0;
   let instalarEvento = null;
   const inicioSplash = performance.now();
@@ -135,14 +140,23 @@
       modalidade: entrada && item.modalidade === "recorrente" ? "recorrente" : entrada ? "avulsa" : null,
       pagamentos: Array.isArray(item.pagamentos)
         ? item.pagamentos.filter((mesPago) => /^\d{4}-\d{2}$/.test(mesPago))
-        : []
+        : [],
+      clienteId: item.clienteId ? String(item.clienteId) : "",
+      clienteNome: typeof item.clienteNome === "string" ? item.clienteNome : "",
+      clienteTelefone: typeof item.clienteTelefone === "string" ? item.clienteTelefone : ""
     };
     return itemValido(normal) ? normal : null;
   }
 
   async function carregarRemoto() {
-    const dados = await requisicao("GET");
+    const [dados, listaClientes] = await Promise.all([
+      requisicao("GET"),
+      requisicao("GET", null, null, "api/clientes.php")
+    ]);
     lancamentos = Array.isArray(dados) ? dados.map(normalizar).filter(Boolean) : [];
+    clientes = Array.isArray(listaClientes) ? listaClientes.filter((cliente) => cliente && cliente.id && cliente.nome) : [];
+    preencherClientes();
+    renderClientes();
     await importarLocais();
     render();
   }
@@ -262,18 +276,6 @@
     formulario.classList.toggle("saida", !entrada);
     $("#opcoes-entrada").hidden = !entrada;
     $("#rotulo-data").textContent = entrada ? "Vencimento" : "Data";
-    const dica = $("#dica-cobranca");
-    if (!entrada) {
-      dica.textContent = "";
-      return;
-    }
-    if (opcaoMarcada("modalidade") === "recorrente") {
-      dica.textContent = "Repete todo mês, neste dia. Se não receber, continua pendente no mês seguinte.";
-    } else if (opcaoMarcada("situacao") === "a_receber") {
-      dica.textContent = "Fica pendente até marcar como recebido, mesmo quando o mês virar.";
-    } else {
-      dica.textContent = "Entra no mês do vencimento como valor já recebido.";
-    }
   }
 
   function limparFormulario() {
@@ -286,6 +288,7 @@
     valorInput.value = "";
     descricaoInput.value = "";
     dataInput.value = dataSugerida();
+    preencherClientes("");
     tituloForm.textContent = "Registrar lançamento";
     botaoSalvar.textContent = "Registrar";
     botaoCancelar.hidden = true;
@@ -293,13 +296,18 @@
     if (modalLancamento.open) modalLancamento.close();
   }
 
-  function telaEstreita() {
-    return window.matchMedia("(max-width: 899px)").matches;
+  function abrirFormulario() {
+    if (modalLancamento.open) return;
+    if (typeof modalLancamento.showModal === "function") modalLancamento.showModal();
   }
 
-  function abrirFormulario() {
-    if (!telaEstreita() || modalLancamento.open) return;
-    if (typeof modalLancamento.showModal === "function") modalLancamento.showModal();
+  function passaFiltro(item) {
+    const tipo = $("#filtro-tipo").value;
+    const situacao = $("#filtro-situacao").value;
+    if (tipo && item.tipo !== tipo) return false;
+    if (!situacao) return true;
+    if (situacao === "pago") return item.status === "pago" || item.status === "recebido";
+    return item.status === situacao;
   }
 
   function definirMes(novo) {
@@ -379,7 +387,10 @@
       data,
       competencia,
       modalidade: item.modalidade,
-      status: statusCobranca(item, competencia, data)
+      status: statusCobranca(item, competencia, data),
+      clienteId: item.clienteId || "",
+      clienteNome: item.clienteNome || "",
+      clienteTelefone: item.clienteTelefone || ""
     };
   }
 
@@ -392,7 +403,10 @@
       data: item.data,
       competencia: item.data.slice(0, 7),
       modalidade: null,
-      status: null
+      status: null,
+      clienteId: item.clienteId || "",
+      clienteNome: item.clienteNome || "",
+      clienteTelefone: item.clienteTelefone || ""
     };
   }
 
@@ -452,7 +466,6 @@
     const textoSaidas = contagem(saidas, "saída", "saídas");
     const textoRecebidas = recebidas ? `${contagem(recebidas, "recebida", "recebidas")} neste mês` : "neste mês";
     const textoPendencia = textoPendencias(quadro.abertas);
-    const textoLancamentos = contagem(quadro.doMes.length, "lançamento", "lançamentos");
     const textoAinda = contagem(quadro.pendentes.length, "pendente", "pendentes");
     let legenda = "já recebido menos as saídas";
     if (falta > 0) legenda = `se entrar o pendente: ${formatarCentavos(previsao - gastei)}`;
@@ -484,30 +497,49 @@
     const entradasMes = quadro.doMes.filter((item) => item.tipo === "entrada");
     const saidasMes = quadro.doMes.filter((item) => item.tipo === "saida");
     const nomeMes = rotuloMes(mes);
-    vazioTexto.textContent = `Nenhum lançamento em ${nomeMes}.`;
+    const doMesFiltrado = quadro.doMes.filter(passaFiltro);
+    const pendentesFiltrados = quadro.pendentes.filter(passaFiltro);
+    vazioTexto.textContent = quadro.doMes.length && !doMesFiltrado.length
+      ? `Nenhum lançamento com esse filtro em ${nomeMes}.`
+      : `Nenhum lançamento em ${nomeMes}.`;
     $("#rel-vazio-entradas-texto").textContent = `Nenhuma entrada em ${nomeMes}.`;
     $("#rel-vazio-saidas-texto").textContent = `Nenhuma saída em ${nomeMes}.`;
-    contagemLista.textContent = textoLancamentos;
+    contagemLista.textContent = contagem(doMesFiltrado.length, "lançamento", "lançamentos");
     $("#rel-contagem-entradas").textContent = contagem(entradasMes.length, "entrada", "entradas");
     $("#rel-contagem-saidas").textContent = textoSaidas;
-    $("#contagem-pendencias").textContent = textoAinda;
+    $("#contagem-pendencias").textContent = contagem(pendentesFiltrados.length, "pendente", "pendentes");
     $("#rel-contagem-pendencias").textContent = textoAinda;
-    vazio.hidden = quadro.doMes.length > 0;
-    lista.hidden = quadro.doMes.length === 0;
+    vazio.hidden = doMesFiltrado.length > 0;
+    lista.hidden = doMesFiltrado.length === 0;
     $("#rel-vazio-entradas").hidden = entradasMes.length > 0;
     relListaEntradas.hidden = entradasMes.length === 0;
     $("#rel-vazio-saidas").hidden = saidasMes.length > 0;
     relListaSaidas.hidden = saidasMes.length === 0;
-    $("#secao-pendencias").hidden = quadro.pendentes.length === 0;
+    $("#secao-pendencias").hidden = pendentesFiltrados.length === 0;
     $("#rel-secao-pendencias").hidden = quadro.pendentes.length === 0;
-    desenharLista(quadro.pendentes, $("#pendencias"), false);
-    desenharLista(quadro.doMes, lista, false);
+    desenharLista(pendentesFiltrados, $("#pendencias"), false);
+    desenharLista(doMesFiltrado, lista, false);
     desenharLista(quadro.pendentes, $("#rel-pendencias"), true);
     desenharLista(entradasMes, relListaEntradas, true);
     desenharLista(saidasMes, relListaSaidas, true);
+    $("#rel-filtro-entrada").textContent = `Entradas · ${entradasMes.length}`;
+    $("#rel-filtro-saida").textContent = `Saídas · ${saidasMes.length}`;
+    mostrarListaRelatorio(listaRelatorio);
 
     document.title = `profTech Financeiro · ${nomeMes}`;
     $("#resumo-vivo").textContent = `${nomeMes}: recebeu ${formatarCentavos(recebido)}, falta receber ${formatarCentavos(falta)}, previsão ${formatarCentavos(previsao)}, saídas ${formatarCentavos(gastei)}, sobra em caixa ${formatarCentavos(sobrou)}.`;
+  }
+
+  function mostrarListaRelatorio(tipo) {
+    listaRelatorio = tipo === "saida" ? "saida" : "entrada";
+    const entradas = listaRelatorio === "entrada";
+    $("#rel-secao-entradas").classList.toggle("filtro-oculto", !entradas);
+    $("#rel-secao-saidas").classList.toggle("filtro-oculto", entradas);
+    $("#rel-secao-pendencias").classList.toggle("filtro-oculto", !entradas);
+    $("#rel-filtro-entrada").classList.toggle("ativo", entradas);
+    $("#rel-filtro-saida").classList.toggle("ativo", !entradas);
+    $("#rel-filtro-entrada").setAttribute("aria-pressed", String(entradas));
+    $("#rel-filtro-saida").setAttribute("aria-pressed", String(!entradas));
   }
 
   function desenharLista(itens, destino, leitura) {
@@ -535,6 +567,16 @@
     const descricao = document.createElement("p");
     descricao.className = "item-desc";
     descricao.textContent = item.descricao;
+    corpo.append(descricao);
+
+    if (item.clienteNome) {
+      const cliente = document.createElement("p");
+      cliente.className = "item-cliente";
+      cliente.textContent = item.clienteTelefone
+        ? `${item.clienteNome} · ${item.clienteTelefone}`
+        : item.clienteNome;
+      corpo.append(cliente);
+    }
 
     const meta = document.createElement("p");
     meta.className = "item-meta";
@@ -544,7 +586,7 @@
       selo.textContent = dados.texto;
       meta.append(selo);
     });
-    corpo.append(descricao, meta);
+    corpo.append(meta);
 
     const valor = document.createElement("p");
     valor.className = `item-valor ${item.tipo}`;
@@ -616,12 +658,12 @@
     });
     descricaoInput.value = item.descricao;
     dataInput.value = item.data;
+    preencherClientes(item.clienteId || "");
     tituloForm.textContent = "Editar lançamento";
     botaoSalvar.textContent = "Salvar";
     botaoCancelar.hidden = false;
     limparErro();
-    if (telaEstreita()) abrirFormulario();
-    else formulario.scrollIntoView({ behavior: "smooth", block: "center" });
+    abrirFormulario();
     valorInput.focus();
   }
 
@@ -653,12 +695,215 @@
   }
 
   function corpoLancamento(tipo, descricao, centavos, data) {
-    const corpo = { tipo, descricao, centavos, data };
+    const corpo = { tipo, descricao, centavos, data, clienteId: $("#cliente").value || "" };
     if (tipo === "entrada") {
       corpo.situacao = opcaoMarcada("situacao") === "recebido" ? "recebido" : "a_receber";
       corpo.modalidade = opcaoMarcada("modalidade") === "recorrente" ? "recorrente" : "avulsa";
     }
     return corpo;
+  }
+
+  function mascaraTelefone(valor) {
+    const digitos = String(valor).replace(/\D/g, "").slice(0, 11);
+    if (digitos.length <= 10) {
+      return digitos
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{4})(\d)/, "$1-$2");
+    }
+    return digitos
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2");
+  }
+
+  function preencherClientes(selecionado) {
+    const select = $("#cliente");
+    const atual = selecionado === undefined ? select.value : selecionado;
+    const vazio = new Option("Sem cliente", "");
+    select.replaceChildren(vazio);
+    clientes
+      .slice()
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+      .forEach((cliente) => {
+        select.append(new Option(`${cliente.nome} · ${cliente.telefone}`, cliente.id));
+      });
+    select.value = clientes.some((cliente) => cliente.id === atual) ? atual : "";
+  }
+
+  function clienteCombina(cliente, busca) {
+    const texto = busca.trim().toLocaleLowerCase("pt-BR");
+    if (!texto) return true;
+    if (cliente.nome.toLocaleLowerCase("pt-BR").includes(texto)) return true;
+    if (cliente.telefone.toLocaleLowerCase("pt-BR").includes(texto)) return true;
+    const digitos = texto.replace(/\D/g, "");
+    return Boolean(digitos) && cliente.telefone.replace(/\D/g, "").includes(digitos);
+  }
+
+  function renderClientes() {
+    const listaClientes = $("#lista-clientes");
+    const vazioClientes = $("#vazio-clientes");
+    const busca = $("#busca-cliente").value;
+    const ordenados = clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    const visiveis = ordenados.filter((cliente) => clienteCombina(cliente, busca));
+    listaClientes.replaceChildren();
+    $("#contagem-clientes").textContent = busca.trim()
+      ? `${visiveis.length} de ${ordenados.length}`
+      : contagem(ordenados.length, "cliente", "clientes");
+    $("#vazio-clientes-texto").textContent = ordenados.length
+      ? "Nenhum cliente encontrado."
+      : "Nenhum cliente cadastrado.";
+    vazioClientes.hidden = visiveis.length > 0;
+    listaClientes.hidden = visiveis.length === 0;
+    visiveis.forEach((cliente) => {
+      const li = document.createElement("li");
+      li.className = "item";
+      const corpo = document.createElement("div");
+      corpo.className = "item-corpo";
+      const nome = document.createElement("p");
+      nome.className = "item-desc";
+      nome.textContent = cliente.nome;
+      const telefone = document.createElement("p");
+      telefone.className = "item-cliente";
+      telefone.textContent = cliente.telefone;
+      corpo.append(nome, telefone);
+      const acoes = document.createElement("div");
+      acoes.className = "item-acoes";
+      const editar = document.createElement("button");
+      editar.type = "button";
+      editar.className = "acao";
+      editar.textContent = "Editar";
+      editar.addEventListener("click", () => iniciarEdicaoCliente(cliente));
+      const excluir = document.createElement("button");
+      excluir.type = "button";
+      excluir.className = "acao acao-excluir";
+      excluir.textContent = "Excluir";
+      excluir.addEventListener("click", () => pedirExclusaoCliente(cliente));
+      acoes.append(editar, excluir);
+      li.append(corpo, acoes);
+      listaClientes.append(li);
+    });
+  }
+
+  function limparCliente() {
+    editandoClienteId = null;
+    $("#form-cliente").reset();
+    $("#titulo-cliente").textContent = "Cadastrar cliente";
+    $("#salvar-cliente").textContent = "Cadastrar";
+    $("#cancelar-cliente").hidden = true;
+    const erroCliente = $("#erro-cliente");
+    erroCliente.hidden = true;
+    erroCliente.textContent = "";
+    if (modalCliente.open) modalCliente.close();
+  }
+
+  function abrirCliente() {
+    if (modalCliente.open) return;
+    if (typeof modalCliente.showModal === "function") modalCliente.showModal();
+  }
+
+  function iniciarEdicaoCliente(cliente) {
+    editandoClienteId = cliente.id;
+    $("#cliente-nome").value = cliente.nome;
+    $("#cliente-telefone").value = cliente.telefone;
+    $("#titulo-cliente").textContent = "Editar cliente";
+    $("#salvar-cliente").textContent = "Salvar";
+    $("#cancelar-cliente").hidden = false;
+    const erroCliente = $("#erro-cliente");
+    erroCliente.hidden = true;
+    erroCliente.textContent = "";
+    abrirCliente();
+    $("#cliente-nome").focus();
+  }
+
+  function refletirClienteNosLancamentos(cliente) {
+    lancamentos.forEach((item) => {
+      if (item.clienteId !== cliente.id) return;
+      item.clienteNome = cliente.nome;
+      item.clienteTelefone = cliente.telefone;
+    });
+  }
+
+  function desvincularCliente(id) {
+    lancamentos.forEach((item) => {
+      if (item.clienteId !== id) return;
+      item.clienteId = "";
+      item.clienteNome = "";
+      item.clienteTelefone = "";
+    });
+  }
+
+  async function salvarCliente(event) {
+    event.preventDefault();
+    if (ocupado) return;
+    const nome = $("#cliente-nome").value.trim().replace(/\s+/g, " ");
+    const telefone = mascaraTelefone($("#cliente-telefone").value);
+    const erroCliente = $("#erro-cliente");
+    const digitos = telefone.replace(/\D/g, "");
+    if (!nome || nome.length > 80) {
+      erroCliente.textContent = "Informe o nome do cliente.";
+      erroCliente.hidden = false;
+      $("#cliente-nome").focus();
+      return;
+    }
+    if (digitos.length < 10) {
+      erroCliente.textContent = "Informe o telefone com DDD.";
+      erroCliente.hidden = false;
+      $("#cliente-telefone").focus();
+      return;
+    }
+    erroCliente.hidden = true;
+    ocupado = true;
+    $("#salvar-cliente").disabled = true;
+    try {
+      const eraEdicao = Boolean(editandoClienteId);
+      const salvo = eraEdicao
+        ? await requisicao("PUT", { nome, telefone }, editandoClienteId, "api/clientes.php")
+        : await requisicao("POST", { id: novoId(), nome, telefone }, null, "api/clientes.php");
+      if (!salvo) throw new Error("Não foi possível salvar o cliente.");
+      const indice = clientes.findIndex((cliente) => cliente.id === salvo.id);
+      if (indice >= 0) clientes[indice] = salvo;
+      else clientes.push(salvo);
+      if (eraEdicao) refletirClienteNosLancamentos(salvo);
+      limparCliente();
+      preencherClientes();
+      renderClientes();
+      render();
+      avisar(eraEdicao ? "Cliente atualizado" : "Cliente cadastrado");
+    } catch (e) {
+      erroCliente.textContent = e.message;
+      erroCliente.hidden = false;
+    } finally {
+      ocupado = false;
+      $("#salvar-cliente").disabled = false;
+    }
+  }
+
+  function pedirExclusaoCliente(cliente) {
+    excluindoId = null;
+    excluindoClienteId = cliente.id;
+    $("#dialogo-titulo").textContent = "Excluir cliente";
+    confirmaTexto.textContent = `${cliente.nome} · ${cliente.telefone}. Os lançamentos continuam, sem esse vínculo.`;
+    if (typeof dialogo.showModal === "function") dialogo.showModal();
+  }
+
+  async function excluirClienteAtual() {
+    if (!excluindoClienteId || ocupado) return;
+    const id = excluindoClienteId;
+    ocupado = true;
+    try {
+      await requisicao("DELETE", null, id, "api/clientes.php");
+      clientes = clientes.filter((cliente) => cliente.id !== id);
+      desvincularCliente(id);
+      if (editandoClienteId === id) limparCliente();
+      excluindoClienteId = null;
+      preencherClientes();
+      renderClientes();
+      render();
+      avisar("Cliente excluído");
+    } catch (e) {
+      avisar(e.message || "Não foi possível excluir");
+    } finally {
+      ocupado = false;
+    }
   }
 
   function substituirLancamento(atualizado) {
@@ -696,7 +941,8 @@
           centavos: item.centavos,
           data: item.data,
           situacao: receber ? "recebido" : "a_receber",
-          modalidade: item.modalidade === "recorrente" ? "recorrente" : "avulsa"
+          modalidade: item.modalidade === "recorrente" ? "recorrente" : "avulsa",
+          clienteId: item.clienteId || ""
         }, item.id)));
       }
       render();
@@ -772,13 +1018,22 @@
   }
 
   function mostrarAba(nome) {
-    const relatorio = nome === "relatorios";
-    $("#aba-lancamentos").hidden = relatorio;
-    $("#aba-relatorios").hidden = !relatorio;
-    document.body.classList.toggle("na-relatorio", relatorio);
-    marcaSub.textContent = relatorio
-      ? "Relatório de um mês"
-      : "Entradas, saídas e o que ainda falta receber";
+    const titulos = {
+      inicio: "Resumo do mês",
+      lancamentos: "Lançamentos",
+      relatorios: "Relatório de um mês",
+      clientes: "Clientes",
+      usuarios: "Usuários",
+      configuracoes: "Configurações"
+    };
+    if (!titulos[nome]) return;
+    document.querySelectorAll("main .aba").forEach((secao) => {
+      secao.hidden = secao.id !== `aba-${nome}`;
+    });
+    if (nome !== "lancamentos" && modalLancamento.open) modalLancamento.close();
+    if (nome !== "clientes" && modalCliente.open) limparCliente();
+    document.body.classList.toggle("sem-mes", nome !== "inicio" && nome !== "lancamentos");
+    marcaSub.textContent = titulos[nome];
     document.querySelectorAll("[data-aba]").forEach((botao) => {
       const ativo = botao.dataset.aba === nome;
       botao.classList.toggle("ativo", ativo);
@@ -805,10 +1060,6 @@
   }
 
   function prepararInstalacao() {
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const instalado = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-    if (ios && !instalado) $("#dica-ios").hidden = false;
-
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
       instalarEvento = event;
@@ -826,13 +1077,6 @@
     window.addEventListener("appinstalled", () => {
       botaoInstalar.hidden = true;
       instalarEvento = null;
-    });
-  }
-
-  function registrarServiceWorker() {
-    if (!("serviceWorker" in navigator)) return;
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
     });
   }
 
@@ -864,16 +1108,38 @@
       atualizarTipo();
     }
   });
+  $("#cliente-telefone").addEventListener("input", () => {
+    $("#cliente-telefone").value = mascaraTelefone($("#cliente-telefone").value);
+  });
+  $("#form-cliente").addEventListener("submit", salvarCliente);
+  $("#cancelar-cliente").addEventListener("click", limparCliente);
+  $("#busca-cliente").addEventListener("input", renderClientes);
+  $("#abrir-cliente").addEventListener("click", () => {
+    limparCliente();
+    abrirCliente();
+    $("#cliente-nome").focus();
+  });
+  $("#fechar-cliente").addEventListener("click", limparCliente);
+  modalCliente.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    limparCliente();
+  });
+  modalCliente.addEventListener("click", (event) => {
+    if (event.target === modalCliente) limparCliente();
+  });
   formulario.addEventListener("submit", (event) => {
     event.preventDefault();
     salvarFormulario();
   });
   botaoCancelar.addEventListener("click", limparFormulario);
-  $("#abrir-lancamento").addEventListener("click", () => {
+  function abrirNovoLancamento() {
     limparFormulario();
     abrirFormulario();
     valorInput.focus();
-  });
+  }
+
+  $("#abrir-lancamento").addEventListener("click", abrirNovoLancamento);
+  $("#abrir-lancamento-desk").addEventListener("click", abrirNovoLancamento);
   $("#fechar-lancamento").addEventListener("click", limparFormulario);
   modalLancamento.addEventListener("cancel", (event) => {
     event.preventDefault();
@@ -882,9 +1148,32 @@
   modalLancamento.addEventListener("click", (event) => {
     if (event.target === modalLancamento) limparFormulario();
   });
-  window.matchMedia("(max-width: 899px)").addEventListener("change", (event) => {
-    if (!event.matches && modalLancamento.open) modalLancamento.close();
+  $("#filtro-tipo").addEventListener("change", render);
+  $("#filtro-situacao").addEventListener("change", render);
+  $("#rel-filtro-entrada").addEventListener("click", () => mostrarListaRelatorio("entrada"));
+  $("#rel-filtro-saida").addEventListener("click", () => mostrarListaRelatorio("saida"));
+
+  function alinharMenu() {
+    const barra = document.querySelector(".topbar");
+    if (barra) document.documentElement.style.setProperty("--topo", `${barra.offsetHeight}px`);
+  }
+
+  const iconeRecolher = $("#fechar-menu").innerHTML;
+  const iconeExpandir = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  function definirMenu(aberto) {
+    document.body.classList.toggle("menu-fechado", !aberto);
+    const botao = $("#fechar-menu");
+    botao.setAttribute("aria-label", aberto ? "Fechar menu" : "Abrir menu");
+    botao.title = aberto ? "Fechar menu" : "Abrir menu";
+    botao.innerHTML = aberto ? iconeRecolher : iconeExpandir;
+  }
+
+  $("#fechar-menu").addEventListener("click", () => {
+    definirMenu(document.body.classList.contains("menu-fechado"));
   });
+  window.addEventListener("resize", alinharMenu);
+  alinharMenu();
 
   function aoClicarLista(event) {
     const botao = event.target.closest("button[data-acao]");
@@ -902,20 +1191,27 @@
 
   $("#confirma-nao").addEventListener("click", () => {
     excluindoId = null;
+    excluindoClienteId = null;
+    $("#dialogo-titulo").textContent = "Excluir lançamento";
     dialogo.close();
   });
   $("#confirma-sim").addEventListener("click", () => {
-    excluirAtual();
+    if (excluindoClienteId) excluirClienteAtual();
+    else excluirAtual();
     dialogo.close();
   });
   dialogo.addEventListener("click", (event) => {
     if (event.target === dialogo) {
       excluindoId = null;
+      excluindoClienteId = null;
+      $("#dialogo-titulo").textContent = "Excluir lançamento";
       dialogo.close();
     }
   });
   dialogo.addEventListener("close", () => {
     excluindoId = null;
+    excluindoClienteId = null;
+    $("#dialogo-titulo").textContent = "Excluir lançamento";
   });
 
   mesInput.value = mes;
@@ -924,21 +1220,22 @@
   relMesRotulo.textContent = rotuloMes(mes);
   dataInput.value = dataSugerida();
   atualizarTipo();
-  $("#sair").addEventListener("click", async () => {
-    try {
-      await fetch(new URL("api/sessao.php", window.location.href), {
-        method: "DELETE",
-        credentials: "same-origin",
-        cache: "no-store"
-      });
-    } catch (e) {
-      /* segue para a tela de login mesmo se a rede falhar */
-    }
-    window.location.replace("login.html");
+  document.querySelectorAll(".js-sair").forEach((botao) => {
+    botao.addEventListener("click", async () => {
+      try {
+        await fetch(new URL("api/sessao.php", window.location.href), {
+          method: "DELETE",
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+      } catch (e) {
+        /* segue para a tela de login mesmo se a rede falhar */
+      }
+      window.location.replace("login.html");
+    });
   });
 
   prepararInstalacao();
-  registrarServiceWorker();
 
   fetch(new URL("api/sessao.php", window.location.href), { cache: "no-store", credentials: "same-origin" })
     .then((resposta) => (resposta.ok ? resposta.json() : Promise.reject()))

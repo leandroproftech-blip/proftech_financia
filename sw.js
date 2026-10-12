@@ -1,4 +1,4 @@
-const CACHE = "proftech-financeiro-v6";
+const CACHE = "proftech-financeiro-v8";
 
 const ARQUIVOS = [
   "./index.html",
@@ -6,6 +6,7 @@ const ARQUIVOS = [
   "./css/app.css",
   "./js/app.js",
   "./js/login.js",
+  "./js/atualizar.js",
   "./manifest.json",
   "./assets/emblema.png",
   "./assets/fonts/sora-latin.woff2",
@@ -21,6 +22,10 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data === "pular-espera") self.skipWaiting();
+});
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -29,6 +34,16 @@ self.addEventListener("activate", (event) => {
         Promise.all(chaves.filter((chave) => chave !== CACHE).map((chave) => caches.delete(chave)))
       )
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      .then((janelas) =>
+        Promise.all(janelas.map((janela) => {
+          if (typeof janela.navigate !== "function") return null;
+          const destino = new URL(janela.url);
+          if (destino.searchParams.get("sw") === CACHE) return null;
+          destino.searchParams.set("sw", CACHE);
+          return janela.navigate(destino.href);
+        }))
+      )
   );
 });
 
@@ -44,7 +59,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(requisicao)
+    fetch(requisicao, { cache: "no-store" })
       .then((resposta) => {
         if (resposta && resposta.ok && resposta.type === "basic") {
           const copia = resposta.clone();

@@ -70,6 +70,32 @@ function garantirTabelas(mysqli $db): void
                 FOREIGN KEY (lancamento_id) REFERENCES lancamentos (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+    $db->query(
+        "CREATE TABLE IF NOT EXISTS clientes (
+            id VARCHAR(36) NOT NULL,
+            nome VARCHAR(80) NOT NULL,
+            telefone VARCHAR(20) NOT NULL,
+            criado_em DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            KEY idx_clientes_nome (nome)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $coluna = $db->query("SHOW COLUMNS FROM lancamentos LIKE 'cliente_id'");
+    if ($coluna && $coluna->num_rows === 0) {
+        $db->query('ALTER TABLE lancamentos ADD COLUMN cliente_id VARCHAR(36) NULL');
+        $db->query('ALTER TABLE lancamentos ADD KEY idx_lancamentos_cliente (cliente_id)');
+    }
+    $fk = $db->query(
+        "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lancamentos' AND CONSTRAINT_NAME = 'fk_lancamentos_cliente'"
+    );
+    if ($fk && $fk->num_rows === 0) {
+        $db->query(
+            'ALTER TABLE lancamentos
+             ADD CONSTRAINT fk_lancamentos_cliente
+             FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE SET NULL'
+        );
+    }
     $db->query('ALTER TABLE usuarios MODIFY cpf VARCHAR(14) NOT NULL');
 }
 

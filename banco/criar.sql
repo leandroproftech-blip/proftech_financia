@@ -13,8 +13,10 @@ CREATE TABLE IF NOT EXISTS lancamentos (
   situacao ENUM('a_receber', 'recebido') NULL,
   modalidade ENUM('avulsa', 'recorrente') NULL,
   criado_em DATETIME NOT NULL,
+  cliente_id VARCHAR(36) NULL,
   PRIMARY KEY (id),
-  KEY idx_lancamentos_data (data)
+  KEY idx_lancamentos_data (data),
+  KEY idx_lancamentos_cliente (cliente_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -34,4 +36,11 @@ CREATE TABLE IF NOT EXISTS recebimentos (
     FOREIGN KEY (lancamento_id) REFERENCES lancamentos (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE usuarios MODIFY cpf VARCHAR(14) NOT NULL;
+CREATE TABLE IF NOT EXISTS clientes (
+  id VARCHAR(36) NOT NULL,
+  nome VARCHAR(80) NOT NULL,
+  telefone VARCHAR(20) NOT NULL,
+  criado_em DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_clientes_nome (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

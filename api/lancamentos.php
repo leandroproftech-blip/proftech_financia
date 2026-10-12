@@ -127,6 +127,11 @@ function validar(array $dados, bool $exigirId): array
         $modalidade = ($dados['modalidade'] ?? 'avulsa') === 'recorrente' ? 'recorrente' : 'avulsa';
     }
 
+    $clienteId = trim((string) ($dados['clienteId'] ?? ''));
+    if ($clienteId !== '' && !idValido($clienteId)) {
+        erro(400, 'Escolha um cliente válido.');
+    }
+
     return [
         'id' => $id,
         'tipo' => $tipo,
@@ -136,6 +141,7 @@ function validar(array $dados, bool $exigirId): array
         'situacao' => $situacao,
         'modalidade' => $modalidade,
         'criadoEm' => $criadoEm,
+        'clienteId' => $clienteId,
     ];
 }
 
@@ -153,6 +159,9 @@ function comoItem(array $linha, array $pagamentos): array
         'modalidade' => $entrada ? ($linha['modalidade'] === 'recorrente' ? 'recorrente' : 'avulsa') : null,
         'pagamentos' => $pagamentos[$linha['id']] ?? [],
         'criadoEm' => $criado,
+        'clienteId' => $linha['cliente_id'] ?: null,
+        'clienteNome' => (string) ($linha['cliente_nome'] ?? ''),
+        'clienteTelefone' => (string) ($linha['cliente_telefone'] ?? ''),
     ];
 }
 
@@ -166,7 +175,7 @@ function mapaPagamentos(mysqli $db): array
     return $mapa;
 }
 
-const COLUNAS = 'id, tipo, descricao, centavos, DATE_FORMAT(data, "%Y-%m-%d") AS data, situacao, modalidade, DATE_FORMAT(criado_em, "%Y-%m-%dT%H:%i:%s") AS criado_em';
+const SQL_ITEM = 'SELECT l.id, l.tipo, l.descricao, l.centavos, DATE_FORMAT(l.data, "%Y-%m-%d") AS data, l.situacao, l.modalidade, DATE_FORMAT(l.criado_em, "%Y-%m-%dT%H:%i:%s") AS criado_em, l.cliente_id, c.nome AS cliente_nome, c.telefone AS cliente_telefone FROM lancamentos l LEFT JOIN clientes c ON c.id = l.cliente_id';
 
 function sincronizarRecebimento(mysqli $db, string $id, array $item): void
 {
@@ -195,7 +204,7 @@ function sincronizarRecebimento(mysqli $db, string $id, array $item): void
 
 function buscar(mysqli $db, string $id): ?array
 {
-    $consulta = $db->prepare('SELECT ' . COLUNAS . ' FROM lancamentos WHERE id = ?');
+    $consulta = $db->prepare(SQL_ITEM . ' WHERE l.id = ?');
     $consulta->bind_param('s', $id);
     $consulta->execute();
     $linha = $consulta->get_result()->fetch_assoc();
@@ -261,7 +270,7 @@ try {
 
     if ($metodo === 'GET') {
         $pagamentos = mapaPagamentos($db);
-        $resultado = $db->query('SELECT ' . COLUNAS . ' FROM lancamentos ORDER BY data DESC, criado_em DESC');
+        $resultado = $db->query(SQL_ITEM . ' ORDER BY l.data DESC, l.criado_em DESC');
         $itens = [];
         while ($linha = $resultado->fetch_assoc()) {
             $itens[] = comoItem($linha, $pagamentos);
@@ -275,17 +284,28 @@ try {
         if ($existente) {
             erro(409, 'Esse lançamento já está no banco.');
         }
+        if ($item['clienteId'] !== '') {
+            $confere = $db->prepare('SELECT id FROM clientes WHERE id = ?');
+            $confere->bind_param('s', $item['clienteId']);
+            $confere->execute();
+            $existe = $confere->get_result()->fetch_assoc();
+            $confere->close();
+            if (!$existe) {
+                erro(400, 'Esse cliente não está mais cadastrado.');
+            }
+        }
         $criado = $item['criadoEm'] !== ''
             ? str_replace('T', ' ', substr($item['criadoEm'], 0, 19))
             : date('Y-m-d H:i:s');
         $insere = $db->prepare(
-            'INSERT INTO lancamentos (id, tipo, descricao, centavos, data, situacao, modalidade, criado_em) VALUES (?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'), ?)'
+            'INSERT INTO lancamentos (id, tipo, descricao, centavos, data, situacao, modalidade, criado_em, cliente_id) VALUES (?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'), ?, NULLIF(?, \'\'))'
         );
         $centavos = (string) $item['centavos'];
         $situacao = (string) ($item['situacao'] ?? '');
         $modalidade = (string) ($item['modalidade'] ?? '');
+        $clienteId = $item['clienteId'];
         $insere->bind_param(
-            'ssssssss',
+            'sssssssss',
             $item['id'],
             $item['tipo'],
             $item['descricao'],
@@ -293,7 +313,8 @@ try {
             $item['data'],
             $situacao,
             $modalidade,
-            $criado
+            $criado,
+            $clienteId
         );
         $insere->execute();
         $insere->close();
@@ -310,20 +331,32 @@ try {
         if (!buscar($db, $id)) {
             erro(404, 'Esse lançamento não está mais na lista.');
         }
+        if ($item['clienteId'] !== '') {
+            $confere = $db->prepare('SELECT id FROM clientes WHERE id = ?');
+            $confere->bind_param('s', $item['clienteId']);
+            $confere->execute();
+            $existe = $confere->get_result()->fetch_assoc();
+            $confere->close();
+            if (!$existe) {
+                erro(400, 'Esse cliente não está mais cadastrado.');
+            }
+        }
         $atualiza = $db->prepare(
-            'UPDATE lancamentos SET tipo = ?, descricao = ?, centavos = ?, data = ?, situacao = NULLIF(?, \'\'), modalidade = NULLIF(?, \'\') WHERE id = ?'
+            'UPDATE lancamentos SET tipo = ?, descricao = ?, centavos = ?, data = ?, situacao = NULLIF(?, \'\'), modalidade = NULLIF(?, \'\'), cliente_id = NULLIF(?, \'\') WHERE id = ?'
         );
         $centavos = (string) $item['centavos'];
         $situacao = (string) ($item['situacao'] ?? '');
         $modalidade = (string) ($item['modalidade'] ?? '');
+        $clienteId = $item['clienteId'];
         $atualiza->bind_param(
-            'sssssss',
+            'ssssssss',
             $item['tipo'],
             $item['descricao'],
             $centavos,
             $item['data'],
             $situacao,
             $modalidade,
+            $clienteId,
             $id
         );
         $atualiza->execute();
