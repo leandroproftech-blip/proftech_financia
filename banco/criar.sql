@@ -17,6 +17,15 @@ CREATE TABLE IF NOT EXISTS lancamentos (
   KEY idx_lancamentos_data (data)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS usuarios (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  cpf CHAR(11) NOT NULL,
+  senha_hash VARCHAR(255) NOT NULL,
+  criado_em DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_usuarios_cpf (cpf)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS recebimentos (
   lancamento_id VARCHAR(36) NOT NULL,
   competencia CHAR(7) NOT NULL,

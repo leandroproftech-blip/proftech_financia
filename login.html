@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#001F60">
+  <meta name="description" content="Entre com CPF e senha para acessar o profTech Financeiro.">
+  <meta name="robots" content="noindex">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="profTech">
+  <title>Entrar · profTech Financeiro</title>
+  <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css?v=8">
+</head>
+<body class="pagina-login">
+  <main class="login">
+    <form class="login-card formulario" id="form-login" novalidate>
+      <img class="login-marca" src="assets/emblema.png" alt="Emblema profTech">
+      <h1 id="login-titulo">Entrar</h1>
+      <p class="login-intro" id="login-intro">Use seu CPF e sua senha para abrir o painel.</p>
+
+      <label class="campo">
+        <span>CPF</span>
+        <input id="login-cpf" name="cpf" inputmode="numeric" autocomplete="username" maxlength="14" placeholder="000.000.000-00" required>
+      </label>
+
+      <label class="campo">
+        <span>Senha</span>
+        <input id="login-senha" name="senha" type="password" autocomplete="current-password" maxlength="72" required>
+      </label>
+
+      <p class="erro" id="login-erro" role="alert" hidden></p>
+      <button type="submit" class="principal" id="login-enviar">Entrar</button>
+    </form>
+  </main>
+  <script src="js/login.js?v=8"></script>
+</body>
+</html>

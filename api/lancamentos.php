@@ -3,6 +3,9 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
+require __DIR__ . '/sessao.php';
+\ProfTechSessao\exigirLogin();
+
 require __DIR__ . '/conexao.php';
 
 function responder(int $status, $dados = null): void

@@ -90,6 +90,7 @@
         headers: corpo ? { "Content-Type": "application/json" } : undefined,
         body: corpo ? JSON.stringify(corpo) : undefined,
         cache: "no-store",
+        credentials: "same-origin",
         signal: controle.signal
       });
     } catch (e) {
@@ -104,6 +105,12 @@
       dados = await resposta.json();
     } catch (e) {
       dados = null;
+    }
+    if (resposta.status === 401) {
+      window.location.replace("login.html");
+      const falha = new Error("Faça login para continuar.");
+      falha.status = 401;
+      throw falha;
     }
     if (!resposta.ok) {
       const falha = new Error((dados && dados.erro) || "Não foi possível falar com o banco.");
@@ -883,14 +890,39 @@
   relMesRotulo.textContent = rotuloMes(mes);
   dataInput.value = dataSugerida();
   atualizarTipo();
-  dadosProntos = carregarRemoto().catch((e) => {
-    mostrarErro(e.message || "Não foi possível carregar os lançamentos.");
-    avisar("Banco indisponível");
-    render();
+  $("#sair").addEventListener("click", async () => {
+    try {
+      await fetch(new URL("api/sessao.php", window.location.href), {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+    } catch (e) {
+      /* segue para a tela de login mesmo se a rede falhar */
+    }
+    window.location.replace("login.html");
   });
+
   prepararInstalacao();
   registrarServiceWorker();
 
-  if (document.readyState === "complete") esconderSplash();
-  else window.addEventListener("load", esconderSplash);
+  fetch(new URL("api/sessao.php", window.location.href), { cache: "no-store", credentials: "same-origin" })
+    .then((resposta) => (resposta.ok ? resposta.json() : Promise.reject()))
+    .then((sessao) => {
+      if (!sessao || !sessao.autenticado) {
+        window.location.replace("login.html");
+        return;
+      }
+      dadosProntos = carregarRemoto().catch((e) => {
+        if (e.status === 401) return;
+        mostrarErro(e.message || "Não foi possível carregar os lançamentos.");
+        avisar("Banco indisponível");
+        render();
+      });
+      if (document.readyState === "complete") esconderSplash();
+      else window.addEventListener("load", esconderSplash);
+    })
+    .catch(() => {
+      window.location.replace("login.html");
+    });
 })();

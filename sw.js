@@ -1,9 +1,11 @@
-const CACHE = "proftech-financeiro-v5";
+const CACHE = "proftech-financeiro-v6";
 
 const ARQUIVOS = [
   "./index.html",
+  "./login.html",
   "./css/app.css",
   "./js/app.js",
+  "./js/login.js",
   "./manifest.json",
   "./assets/emblema.png",
   "./assets/fonts/sora-latin.woff2",
