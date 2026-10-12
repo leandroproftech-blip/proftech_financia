@@ -299,13 +299,6 @@
     if (typeof modalLancamento.showModal === "function") modalLancamento.showModal();
   }
 
-  function passaFiltro(item) {
-    const situacao = $("#filtro-situacao").value;
-    if (!situacao) return true;
-    if (situacao === "pago") return item.status === "pago" || item.status === "recebido";
-    return item.status === situacao;
-  }
-
   function definirMes(novo) {
     if (!/^\d{4}-\d{2}$/.test(novo)) return;
     mes = novo;
@@ -504,36 +497,32 @@
 
     const entradasMes = quadro.doMes.filter((item) => item.tipo === "entrada");
     const saidasMes = quadro.doMes.filter((item) => item.tipo === "saida");
-    const entradasVisiveis = entradasMes.filter(passaFiltro);
     const nomeMes = rotuloMes(mes);
-    const pendentesFiltrados = quadro.pendentes.filter(passaFiltro);
     const soma = (itens) => itens.reduce((total, item) => total + item.centavos, 0);
-    $("#vazio-entradas-mes-texto").textContent = entradasMes.length && !entradasVisiveis.length
-      ? `Nenhuma entrada com esse filtro em ${nomeMes}.`
-      : `Nenhuma entrada em ${nomeMes}.`;
+    $("#vazio-entradas-mes-texto").textContent = `Nenhuma entrada em ${nomeMes}.`;
     $("#vazio-saidas-mes-texto").textContent = `Nenhuma saída em ${nomeMes}.`;
     $("#rel-vazio-entradas-texto").textContent = `Nenhuma entrada em ${nomeMes}.`;
     $("#rel-vazio-saidas-texto").textContent = `Nenhuma saída em ${nomeMes}.`;
-    $("#lan-contagem-entradas").textContent = contagem(entradasVisiveis.length, "entrada", "entradas");
+    $("#lan-contagem-entradas").textContent = contagem(entradasMes.length, "entrada", "entradas");
     $("#lan-contagem-saidas").textContent = contagem(saidasMes.length, "saída", "saídas");
-    $("#lan-soma-entradas").textContent = formatarCentavos(soma(entradasVisiveis));
+    $("#lan-soma-entradas").textContent = formatarCentavos(soma(entradasMes));
     $("#lan-soma-saidas").textContent = formatarCentavos(soma(saidasMes));
     $("#rel-contagem-entradas").textContent = contagem(entradasMes.length, "entrada", "entradas");
     $("#rel-contagem-saidas").textContent = textoSaidas;
-    $("#contagem-pendencias").textContent = contagem(pendentesFiltrados.length, "pendente", "pendentes");
+    $("#contagem-pendencias").textContent = contagem(quadro.pendentes.length, "pendente", "pendentes");
     $("#rel-contagem-pendencias").textContent = textoAinda;
-    $("#vazio-entradas-mes").hidden = entradasVisiveis.length > 0;
-    listaEntradasMes.hidden = entradasVisiveis.length === 0;
+    $("#vazio-entradas-mes").hidden = entradasMes.length > 0;
+    listaEntradasMes.hidden = entradasMes.length === 0;
     $("#vazio-saidas-mes").hidden = saidasMes.length > 0;
     listaSaidasMes.hidden = saidasMes.length === 0;
     $("#rel-vazio-entradas").hidden = entradasMes.length > 0;
     relListaEntradas.hidden = entradasMes.length === 0;
     $("#rel-vazio-saidas").hidden = saidasMes.length > 0;
     relListaSaidas.hidden = saidasMes.length === 0;
-    $("#secao-pendencias").hidden = pendentesFiltrados.length === 0;
+    $("#secao-pendencias").hidden = quadro.pendentes.length === 0;
     $("#rel-secao-pendencias").hidden = quadro.pendentes.length === 0;
-    desenharLista(pendentesFiltrados, $("#pendencias"), false);
-    desenharLista(entradasVisiveis, listaEntradasMes, false);
+    desenharLista(quadro.pendentes, $("#pendencias"), false);
+    desenharLista(entradasMes, listaEntradasMes, false);
     desenharLista(saidasMes, listaSaidasMes, false);
     desenharLista(quadro.pendentes, $("#rel-pendencias"), true);
     desenharLista(entradasMes, relListaEntradas, true);
@@ -1182,6 +1171,7 @@
     if (nome !== "lancamentos" && modalLancamento.open) modalLancamento.close();
     if (nome !== "clientes" && modalCliente.open) limparCliente();
     document.body.classList.toggle("sem-mes", nome !== "inicio" && nome !== "lancamentos");
+    document.body.classList.toggle("na-aba-lancamentos", nome === "lancamentos");
     marcaSub.textContent = titulos[nome];
     document.querySelectorAll("[data-aba]").forEach((botao) => {
       const ativo = botao.dataset.aba === nome;
@@ -1300,7 +1290,6 @@
   modalLancamento.addEventListener("click", (event) => {
     if (event.target === modalLancamento) limparFormulario();
   });
-  $("#filtro-situacao").addEventListener("change", render);
   $("#rel-filtro-entrada").addEventListener("click", () => mostrarListaRelatorio("entrada"));
   $("#rel-filtro-saida").addEventListener("click", () => mostrarListaRelatorio("saida"));
 

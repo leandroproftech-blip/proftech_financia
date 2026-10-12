@@ -834,18 +834,6 @@ body.sem-mes .topbar .mes-nav { display: none; }
   font-size: 1.2rem;
 }
 
-.lista-comandos select {
-  min-height: 42px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f3f6fb;
-  color: var(--navy);
-  font: inherit;
-  font-size: 16px;
-  font-weight: 650;
-}
-
 .soma-lista {
   font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
@@ -1520,6 +1508,130 @@ body.sem-mes .topbar .mes-nav { display: none; }
   .abrir-cliente { display: inline-flex; }
 
   .abrir-lancamento { display: none !important; }
+}
+
+body.na-aba-lancamentos {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body.na-aba-lancamentos .app {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.na-aba-lancamentos .corpo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+body.na-aba-lancamentos .miolo,
+body.na-aba-lancamentos .conteudo,
+body.na-aba-lancamentos #aba-lancamentos,
+body.na-aba-lancamentos .painel,
+body.na-aba-lancamentos .coluna-listas {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.na-aba-lancamentos .conteudo {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+body.na-aba-lancamentos .lancamento-topo,
+body.na-aba-lancamentos .resumo {
+  flex: none;
+}
+
+body.na-aba-lancamentos #aba-lancamentos .stat {
+  min-height: 0;
+  padding: 12px 14px;
+}
+
+body.na-aba-lancamentos #aba-lancamentos .stat strong {
+  margin-top: 4px;
+  font-size: 1.15rem;
+}
+
+@media (min-width: 720px) {
+  body.na-aba-lancamentos #aba-lancamentos .resumo {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  body.na-aba-lancamentos #aba-lancamentos .stat.sobrou { grid-column: auto; }
+}
+
+body.na-aba-lancamentos #secao-pendencias {
+  flex: 0 1 auto;
+  max-height: 28%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.na-aba-lancamentos #secao-pendencias .lista {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+body.na-aba-lancamentos .listas-tipo {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+body.na-aba-lancamentos .listas-tipo > .cartao {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.na-aba-lancamentos .listas-tipo .lista {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 900px) {
+  body.na-aba-lancamentos .listas-tipo {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  body.na-aba-lancamentos .listas-tipo {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  body.na-aba-lancamentos .listas-tipo > .cartao {
+    flex: none;
+    overflow: visible;
+  }
+
+  body.na-aba-lancamentos .listas-tipo .lista {
+    flex: none;
+    overflow: visible;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
