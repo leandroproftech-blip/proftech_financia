@@ -94,7 +94,7 @@
         signal: controle.signal
       });
     } catch (e) {
-      throw new Error("Não foi possível falar com o banco. Ligue o MySQL no Laragon.");
+      throw new Error("Não foi possível conectar ao banco.");
     } finally {
       window.clearTimeout(timer);
     }

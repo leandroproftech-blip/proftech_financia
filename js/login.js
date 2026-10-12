@@ -65,7 +65,7 @@
       }
       window.location.replace("index.html");
     } catch (e) {
-      mostrarErro("Não foi possível falar com o banco. Ligue o MySQL no Laragon.");
+      mostrarErro("Não foi possível conectar ao banco.");
     } finally {
       ocupado = false;
       enviar.disabled = false;
@@ -86,6 +86,6 @@
       cpfInput.focus();
     })
     .catch(() => {
-      mostrarErro("Não foi possível falar com o banco. Ligue o MySQL no Laragon.");
+      mostrarErro("Não foi possível conectar ao banco.");
     });
 })();

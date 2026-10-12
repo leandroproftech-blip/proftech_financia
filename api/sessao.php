@@ -153,7 +153,10 @@ try {
     $db = conectar();
     garantirUsuarios($db);
 } catch (mysqli_sql_exception $e) {
-    erro(503, 'O banco não está disponível. Ligue o MySQL no Laragon.');
+    $mensagem = str_starts_with($e->getMessage(), 'Falta')
+        ? 'Falta o arquivo de conexão do servidor.'
+        : 'O banco não está disponível.';
+    erro(503, $mensagem);
 }
 
 iniciarSessao();
