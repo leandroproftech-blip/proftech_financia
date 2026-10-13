@@ -1,4 +1,4 @@
-const CACHE = "proftech-financeiro-v8";
+const CACHE = "proftech-financeiro-v9";
 
 const ARQUIVOS = [
   "./index.html",
@@ -34,18 +34,14 @@ self.addEventListener("activate", (event) => {
         Promise.all(chaves.filter((chave) => chave !== CACHE).map((chave) => caches.delete(chave)))
       )
       .then(() => self.clients.claim())
-      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
-      .then((janelas) =>
-        Promise.all(janelas.map((janela) => {
-          if (typeof janela.navigate !== "function") return null;
-          const destino = new URL(janela.url);
-          if (destino.searchParams.get("sw") === CACHE) return null;
-          destino.searchParams.set("sw", CACHE);
-          return janela.navigate(destino.href);
-        }))
-      )
   );
 });
+
+function buscarRede(requisicao, ms) {
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), ms);
+  return fetch(requisicao, { cache: "no-store", signal: controle.signal }).finally(() => clearTimeout(timer));
+}
 
 self.addEventListener("fetch", (event) => {
   const requisicao = event.request;
@@ -54,12 +50,20 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(requisicao.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.includes("/api/")) {
-    event.respondWith(fetch(requisicao));
+    event.respondWith(
+      buscarRede(requisicao, 12000).catch(
+        () => new Response(JSON.stringify({ erro: "Não foi possível conectar ao banco." }), {
+          status: 504,
+          headers: { "Content-Type": "application/json; charset=utf-8" }
+        })
+      )
+    );
     return;
   }
 
+  const limite = requisicao.mode === "navigate" ? 4000 : 8000;
   event.respondWith(
-    fetch(requisicao, { cache: "no-store" })
+    buscarRede(requisicao, limite)
       .then((resposta) => {
         if (resposta && resposta.ok && resposta.type === "basic") {
           const copia = resposta.clone();
@@ -70,7 +74,10 @@ self.addEventListener("fetch", (event) => {
       .catch(async () => {
         const emCache = await caches.match(requisicao);
         if (emCache) return emCache;
-        if (requisicao.mode === "navigate") return caches.match("./index.html");
+        if (requisicao.mode === "navigate") {
+          const pagina = await caches.match("./index.html");
+          if (pagina) return pagina;
+        }
         return new Response("", { status: 504, statusText: "Offline" });
       })
   );

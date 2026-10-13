@@ -48,16 +48,14 @@
     enviar.disabled = true;
 
     try {
-      const resposta = await fetch(new URL("api/sessao.php", window.location.href), {
+      const resposta = await buscarComTempo(new URL("api/sessao.php", window.location.href), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        cache: "no-store",
         body: JSON.stringify({
           cpf: cpfInput.value,
           senha
         })
-      });
+      }, 12000);
       const dados = await lerJson(resposta);
       if (!resposta.ok) {
         mostrarErro((dados && dados.erro) || "Não foi possível entrar.");
@@ -72,7 +70,17 @@
     }
   });
 
-  fetch(new URL("api/sessao.php", window.location.href), { cache: "no-store", credentials: "same-origin" })
+  function buscarComTempo(url, opcoes, ms) {
+    const controle = new AbortController();
+    const timer = window.setTimeout(() => controle.abort(), ms);
+    return fetch(url, Object.assign({
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controle.signal
+    }, opcoes)).finally(() => window.clearTimeout(timer));
+  }
+
+  buscarComTempo(new URL("api/sessao.php", window.location.href), {}, 12000)
     .then(async (resposta) => {
       const dados = await lerJson(resposta);
       if (!resposta.ok) {

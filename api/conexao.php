@@ -35,9 +35,37 @@ function configuracaoBanco(): array
     return $cfg;
 }
 
+function schemaNaVersao(mysqli $db): bool
+{
+    try {
+        $consulta = $db->query("SELECT valor FROM app_meta WHERE chave = 'schema' LIMIT 1");
+    } catch (mysqli_sql_exception $e) {
+        if ((int) $e->getCode() !== 1146) {
+            throw $e;
+        }
+        return false;
+    }
+    $linha = $consulta ? $consulta->fetch_row() : null;
+    return $linha && $linha[0] === '3';
+}
+
 function garantirTabelas(mysqli $db): void
 {
-    $db->query(
+    if (schemaNaVersao($db)) {
+        return;
+    }
+
+    $trava = $db->query("SELECT GET_LOCK('proftech_schema_v3', 4)");
+    $linhaTrava = $trava ? $trava->fetch_row() : null;
+    if (!$linhaTrava || (int) $linhaTrava[0] !== 1) {
+        return;
+    }
+
+    try {
+        if (schemaNaVersao($db)) {
+            return;
+        }
+        $db->query(
         "CREATE TABLE IF NOT EXISTS lancamentos (
             id VARCHAR(36) NOT NULL,
             tipo ENUM('entrada', 'saida') NOT NULL,
@@ -96,13 +124,31 @@ function garantirTabelas(mysqli $db): void
              FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE SET NULL'
         );
     }
-    $db->query('ALTER TABLE usuarios MODIFY cpf VARCHAR(14) NOT NULL');
+    $cpf = $db->query("SHOW COLUMNS FROM usuarios LIKE 'cpf'");
+    $colunaCpf = $cpf ? $cpf->fetch_assoc() : null;
+    $tipoCpf = strtolower((string) ($colunaCpf['Type'] ?? ''));
+    if ($tipoCpf !== '' && !str_contains($tipoCpf, 'varchar(14)')) {
+        $db->query('ALTER TABLE usuarios MODIFY cpf VARCHAR(14) NOT NULL');
+    }
+    $db->query(
+        "CREATE TABLE IF NOT EXISTS app_meta (
+            chave VARCHAR(32) NOT NULL,
+            valor VARCHAR(32) NOT NULL,
+            PRIMARY KEY (chave)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $db->query("INSERT INTO app_meta (chave, valor) VALUES ('schema', '3') ON DUPLICATE KEY UPDATE valor = '3'");
+    } finally {
+        $db->query("SELECT RELEASE_LOCK('proftech_schema_v3')");
+    }
 }
 
 function conectar(): mysqli
 {
     $cfg = configuracaoBanco();
-    $mysqli = new mysqli(
+    $mysqli = mysqli_init();
+    $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
+    $mysqli->real_connect(
         (string) $cfg['host'],
         (string) $cfg['usuario'],
         (string) $cfg['senha'],

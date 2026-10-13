@@ -42,14 +42,21 @@
     });
   }
 
+  function comLimite(promessa, ms) {
+    return Promise.race([
+      promessa,
+      new Promise((resolver) => window.setTimeout(resolver, ms))
+    ]);
+  }
+
   async function recarregar() {
     try {
       if ("serviceWorker" in navigator) {
         const registros = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registros.map(async (registro) => {
-          await registro.update();
+        await comLimite(Promise.all(registros.map(async (registro) => {
+          await comLimite(registro.update(), 4000);
           if (registro.waiting) registro.waiting.postMessage("pular-espera");
-        }));
+        })), 5000);
       }
     } catch (e) {
       /* segue o recarregamento mesmo se a checagem falhar */

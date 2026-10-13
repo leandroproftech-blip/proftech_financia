@@ -28,8 +28,6 @@
   const listaSaidasMes = $("#lista-saidas-mes");
   const mesInput = $("#mes");
   const mesRotulo = $("#mes-rotulo");
-  const relMesInput = $("#rel-mes");
-  const relMesRotulo = $("#rel-mes-rotulo");
   const relListaEntradas = $("#rel-lista-entradas");
   const relListaSaidas = $("#rel-lista-saidas");
   let listaRelatorio = "entrada";
@@ -82,25 +80,28 @@
     return new Promise((resolver) => window.setTimeout(resolver, ms));
   }
 
-  async function requisicao(metodo, corpo, id, caminho = "api/lancamentos.php") {
+  function buscarComTempo(url, opcoes, ms) {
+    const controle = new AbortController();
+    const timer = window.setTimeout(() => controle.abort(), ms);
+    return fetch(url, Object.assign({
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controle.signal
+    }, opcoes)).finally(() => window.clearTimeout(timer));
+  }
+
+  async function requisicaoUma(metodo, corpo, id, caminho) {
     const url = new URL(caminho, window.location.href);
     if (id) url.searchParams.set("id", id);
-    const controle = new AbortController();
-    const timer = window.setTimeout(() => controle.abort(), 8000);
     let resposta;
     try {
-      resposta = await fetch(url, {
+      resposta = await buscarComTempo(url, {
         method: metodo,
         headers: corpo ? { "Content-Type": "application/json" } : undefined,
-        body: corpo ? JSON.stringify(corpo) : undefined,
-        cache: "no-store",
-        credentials: "same-origin",
-        signal: controle.signal
-      });
+        body: corpo ? JSON.stringify(corpo) : undefined
+      }, 12000);
     } catch (e) {
       throw new Error("Não foi possível conectar ao banco.");
-    } finally {
-      window.clearTimeout(timer);
     }
 
     if (resposta.status === 204) return null;
@@ -122,6 +123,16 @@
       throw falha;
     }
     return dados;
+  }
+
+  async function requisicao(metodo, corpo, id, caminho = "api/lancamentos.php") {
+    try {
+      return await requisicaoUma(metodo, corpo, id, caminho);
+    } catch (e) {
+      if (metodo !== "GET" || (e.status && e.status !== 503 && e.status !== 504)) throw e;
+      await espera(600);
+      return requisicaoUma(metodo, corpo, id, caminho);
+    }
   }
 
   function normalizar(item) {
@@ -150,13 +161,20 @@
   async function carregarRemoto() {
     const [dados, listaClientes] = await Promise.all([
       requisicao("GET"),
-      requisicao("GET", null, null, "api/clientes.php")
+      requisicao("GET", null, null, "api/clientes.php").catch((e) => {
+        if (e.status === 401) throw e;
+        return [];
+      })
     ]);
     lancamentos = Array.isArray(dados) ? dados.map(normalizar).filter(Boolean) : [];
     clientes = Array.isArray(listaClientes) ? listaClientes.filter((cliente) => cliente && cliente.id && cliente.nome) : [];
     preencherClientes();
     renderClientes();
-    await importarLocais();
+    try {
+      await importarLocais();
+    } catch (e) {
+      if (e.status === 401) throw e;
+    }
     render();
   }
 
@@ -171,8 +189,8 @@
         await requisicao("POST", item);
         mudou = true;
       } catch (e) {
-        if (e.status === 409) continue;
-        throw e;
+        if (e.status === 401) throw e;
+        continue;
       }
     }
     if (!mudou) {
@@ -307,8 +325,6 @@
     const nome = rotuloMes(mes);
     mesInput.value = mes;
     mesRotulo.textContent = nome;
-    relMesInput.value = mes;
-    relMesRotulo.textContent = nome;
     if (!editandoId) dataInput.value = dataSugerida();
     render();
   }
@@ -1186,7 +1202,7 @@
     });
     if (nome !== "lancamentos" && modalLancamento.open) modalLancamento.close();
     if (nome !== "clientes" && modalCliente.open) limparCliente();
-    document.body.classList.toggle("sem-mes", nome !== "inicio" && nome !== "lancamentos");
+    document.body.classList.toggle("sem-mes", nome !== "inicio" && nome !== "lancamentos" && nome !== "relatorios");
     document.body.classList.toggle("na-aba-lancamentos", nome === "lancamentos");
     marcaSub.textContent = titulos[nome];
     document.querySelectorAll("[data-aba]").forEach((botao) => {
@@ -1207,7 +1223,21 @@
 
   function esconderSplash() {
     const restante = Math.max(0, ESPERA_SPLASH - (performance.now() - inicioSplash));
-    Promise.all([dadosProntos, espera(restante)]).then(() => {
+    let encerrou = false;
+    const limite = Promise.race([
+      dadosProntos.then(() => {
+        encerrou = true;
+      }),
+      espera(16000).then(() => {
+        if (encerrou) return;
+        encerrou = true;
+        mostrarErro("Não foi possível carregar os lançamentos.");
+        avisar("Banco indisponível");
+        render();
+      })
+    ]);
+    Promise.all([limite, espera(restante)]).then(() => {
+      if (!splash.isConnected) return;
       splash.classList.add("saindo");
       app.removeAttribute("aria-hidden");
       window.setTimeout(() => splash.remove(), 500);
@@ -1240,12 +1270,6 @@
   mesInput.addEventListener("change", () => {
     if (mesInput.value) definirMes(mesInput.value);
   });
-  $("#rel-mes-anterior").addEventListener("click", () => deslocarMes(-1));
-  $("#rel-mes-proximo").addEventListener("click", () => deslocarMes(1));
-  relMesInput.addEventListener("change", () => {
-    if (relMesInput.value) definirMes(relMesInput.value);
-  });
-
   document.querySelectorAll("[data-aba]").forEach((botao) => {
     botao.addEventListener("click", () => mostrarAba(botao.dataset.aba));
   });
@@ -1375,8 +1399,6 @@
 
   mesInput.value = mes;
   mesRotulo.textContent = rotuloMes(mes);
-  relMesInput.value = mes;
-  relMesRotulo.textContent = rotuloMes(mes);
   dataInput.value = dataSugerida();
   atualizarTipo();
   document.querySelectorAll(".js-sair").forEach((botao) => {
@@ -1396,23 +1418,45 @@
 
   prepararInstalacao();
 
-  fetch(new URL("api/sessao.php", window.location.href), { cache: "no-store", credentials: "same-origin" })
-    .then((resposta) => (resposta.ok ? resposta.json() : Promise.reject()))
-    .then((sessao) => {
-      if (!sessao || !sessao.autenticado) {
-        window.location.replace("login.html");
-        return;
-      }
-      dadosProntos = carregarRemoto().catch((e) => {
-        if (e.status === 401) return;
-        mostrarErro(e.message || "Não foi possível carregar os lançamentos.");
-        avisar("Banco indisponível");
-        render();
-      });
-      if (document.readyState === "complete") esconderSplash();
-      else window.addEventListener("load", esconderSplash);
-    })
-    .catch(() => {
+  function abrirPainel() {
+    if (document.readyState === "complete") esconderSplash();
+    else window.addEventListener("load", esconderSplash);
+  }
+
+  async function verificarSessao() {
+    const url = new URL("api/sessao.php", window.location.href);
+    let resposta;
+    try {
+      resposta = await buscarComTempo(url, {}, 12000);
+    } catch (e) {
+      await espera(500);
+      resposta = await buscarComTempo(url, {}, 12000);
+    }
+    if (resposta.status === 401) {
       window.location.replace("login.html");
+      return;
+    }
+    const sessao = resposta.ok ? await resposta.json().catch(() => null) : null;
+    if (resposta.ok && (!sessao || !sessao.autenticado)) {
+      window.location.replace("login.html");
+      return;
+    }
+    if (!resposta.ok || !sessao || !sessao.autenticado) {
+      throw new Error((sessao && sessao.erro) || "Não foi possível carregar os lançamentos.");
+    }
+    dadosProntos = carregarRemoto().catch((e) => {
+      if (e.status === 401) return;
+      mostrarErro(e.message || "Não foi possível carregar os lançamentos.");
+      avisar("Banco indisponível");
+      render();
     });
+  }
+
+  verificarSessao()
+    .catch((e) => {
+      mostrarErro((e && e.message) || "Não foi possível carregar os lançamentos.");
+      avisar("Sem conexão");
+      render();
+    })
+    .finally(abrirPainel);
 })();
