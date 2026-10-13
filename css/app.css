@@ -1696,6 +1696,10 @@ body.na-aba-lancamentos .listas-tipo .lista {
   body.na-aba-lancamentos .listas-tipo {
     display: grid;
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    align-items: start;
+    flex: none;
+    min-height: auto;
     overflow: visible;
   }
 
