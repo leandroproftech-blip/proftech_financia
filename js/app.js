@@ -458,10 +458,11 @@
 
   function render() {
     const quadro = quadroDoMes();
+    const abertasDoMes = quadro.doMes.filter((item) => item.status === "a_receber" || item.status === "em_atraso");
     const recebido = quadro.doMes
       .filter((item) => item.status === "pago" || item.status === "recebido")
       .reduce((total, item) => total + item.centavos, 0);
-    const falta = quadro.abertas.reduce((total, item) => total + item.centavos, 0);
+    const falta = abertasDoMes.reduce((total, item) => total + item.centavos, 0);
     const previsao = recebido + falta;
     const gastei = quadro.doMes
       .filter((item) => item.tipo === "saida")
@@ -471,7 +472,7 @@
     const recebidas = quadro.doMes.filter((item) => item.status === "pago" || item.status === "recebido").length;
     const textoSaidas = contagem(saidas, "saída", "saídas");
     const textoRecebidas = recebidas ? `${contagem(recebidas, "recebida", "recebidas")} neste mês` : "neste mês";
-    const textoPendencia = textoPendencias(quadro.abertas);
+    const textoPendencia = textoPendencias(abertasDoMes);
     const textoAinda = contagem(quadro.pendentes.length, "pendente", "pendentes");
     let legenda = "já recebido menos as saídas";
     if (falta > 0) legenda = `se entrar o pendente: ${formatarCentavos(previsao - gastei)}`;
@@ -486,7 +487,7 @@
     $("#qtd-saidas").textContent = textoSaidas;
     $("#legenda-sobrou").textContent = legenda;
     cartaoSobrou.classList.toggle("negativo", sobrou < 0);
-    $("#cartao-falta").classList.toggle("tem-atraso", quadro.abertas.some((item) => item.status === "em_atraso"));
+    $("#cartao-falta").classList.toggle("tem-atraso", abertasDoMes.some((item) => item.status === "em_atraso"));
 
     $("#lan-total-recebi").textContent = formatarCentavos(recebido);
     $("#lan-total-falta").textContent = formatarCentavos(falta);
@@ -498,7 +499,7 @@
     $("#lan-qtd-saidas").textContent = textoSaidas;
     $("#lan-legenda-sobrou").textContent = legenda;
     $("#lan-cartao-sobrou").classList.toggle("negativo", sobrou < 0);
-    $("#lan-cartao-falta").classList.toggle("tem-atraso", quadro.abertas.some((item) => item.status === "em_atraso"));
+    $("#lan-cartao-falta").classList.toggle("tem-atraso", abertasDoMes.some((item) => item.status === "em_atraso"));
 
     $("#rel-total-recebi").textContent = formatarCentavos(recebido);
     $("#rel-total-falta").textContent = formatarCentavos(falta);
@@ -510,7 +511,7 @@
     $("#rel-qtd-saidas").textContent = textoSaidas;
     $("#rel-legenda-sobrou").textContent = legenda;
     relCartaoSobrou.classList.toggle("negativo", sobrou < 0);
-    $("#rel-cartao-falta").classList.toggle("tem-atraso", quadro.abertas.some((item) => item.status === "em_atraso"));
+    $("#rel-cartao-falta").classList.toggle("tem-atraso", abertasDoMes.some((item) => item.status === "em_atraso"));
 
     const entradasMes = quadro.doMes.filter((item) => item.tipo === "entrada");
     const saidasMes = quadro.doMes.filter((item) => item.tipo === "saida");
@@ -536,7 +537,7 @@
     relListaEntradas.hidden = entradasMes.length === 0;
     $("#rel-vazio-saidas").hidden = saidasMes.length > 0;
     relListaSaidas.hidden = saidasMes.length === 0;
-    $("#secao-pendencias").hidden = quadro.pendentes.length === 0;
+    $("#secao-pendencias").hidden = mes > mesAtual() || quadro.pendentes.length === 0;
     $("#rel-secao-pendencias").hidden = quadro.pendentes.length === 0;
     desenharLista(quadro.pendentes, $("#pendencias"), false);
     desenharLista(entradasMes, listaEntradasMes, false);
